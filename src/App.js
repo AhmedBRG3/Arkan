@@ -27,6 +27,8 @@ import AllReceiptsPage from "./components/AllReceiptsPage";
 import UsersPage from "./components/UsersPage";
 import SessionTest from "./components/SessionTest";
 import ExcelImportPage from "./components/ExcelImportPage";
+import ProductionPage from "./components/ProductionPage";
+import ProjectEditPage from "./components/ProjectEditPage";
 const LayoutWithSidebar = ({ children }) => {
   const location = useLocation();
   const showSidebar = location.pathname !== "/Login";
@@ -69,6 +71,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <OrdersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/production"
+            element={
+              <ProtectedRoute>
+                <ProductionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ProjectEditPage />
               </ProtectedRoute>
             }
           />

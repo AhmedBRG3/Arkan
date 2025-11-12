@@ -1,0 +1,406 @@
+// components/ProductionPage.jsx
+import React, { useEffect, useState } from "react";
+import "../styles/OrderListPage.css";
+
+const API_BASE = "https://arkanaltafawuq.com/arkan-system";
+const api = (p) => `${API_BASE}/${String(p).replace(/^\/+/, "")}`;
+
+const ProductionPage = ({ isSidebarOpen }) => {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [modalProject, setModalProject] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    name: "",
+    responsible: "",
+    job: "",
+    status: "",
+    installFrom: "",
+    installTo: "",
+    productionFrom: "",
+    productionTo: "",
+    eventFrom: "",
+    eventTo: "",
+    disassemblyFrom: "",
+    disassemblyTo: "",
+    noFilesOnly: false,
+    no3d: false,
+    noProva: false,
+    noBrief: false,
+    noQuotation: false,
+    noPhotos: false,
+    noInvoice: false,
+  });
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(api("projects_list.php"));
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.projects)) {
+        setProjects(data.projects);
+      } else {
+        setProjects([]);
+        setError(data?.message || "Failed to load projects");
+      }
+    } catch (e) {
+      console.error(e);
+      setProjects([]);
+      setError("Failed to load projects");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const countFiles = (project, type) => {
+    const list = project?.files?.[type];
+    return Array.isArray(list) ? list.length : 0;
+  };
+
+  const openFiles = (project) => setModalProject(project);
+  const closeFiles = () => setModalProject(null);
+
+  const handleFilterChange = (e) => {
+    const { name, type, value, checked } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const parseDate = (s) => {
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+    };
+
+  const rangesOverlap = (startA, endA, startB, endB) => {
+    if (!startB && !endB) return true; // no filter applied
+    const aStart = startA ? new Date(startA) : null;
+    const aEnd = endA ? new Date(endA) : aStart;
+    const bStart = parseDate(startB);
+    const bEnd = parseDate(endB) || bStart;
+    if (!aStart && !aEnd) return false;
+    // Overlap if A_start <= B_end && A_end >= B_start
+    const aS = aStart || aEnd;
+    const aE = aEnd || aStart;
+    return aS <= bEnd && aE >= bStart;
+  };
+
+  const filteredProjects = projects.filter((p) => {
+    // text filters
+    if (filters.name && !(p.name || "").toLowerCase().includes(filters.name.toLowerCase())) return false;
+    if (filters.responsible && !(p.Response_name || "").toLowerCase().includes(filters.responsible.toLowerCase())) return false;
+    if (filters.job && !(p.job_no || "").toLowerCase().includes(filters.job.toLowerCase())) return false;
+    if (filters.status && !(p.status || "").toLowerCase().includes(filters.status.toLowerCase())) return false;
+
+    const d = p?.dates || {};
+    // date range filters per column
+    if (!rangesOverlap(d.install_date, d.install_end_date, filters.installFrom, filters.installTo)) return false;
+    if (!rangesOverlap(d.production_date, d.production_end_date, filters.productionFrom, filters.productionTo)) return false;
+    if (!rangesOverlap(d.event_date, d.event_end_date, filters.eventFrom, filters.eventTo)) return false;
+    if (!rangesOverlap(d.remove_date, d.remove_end_date, filters.disassemblyFrom, filters.disassemblyTo)) return false;
+
+    // no files filters
+    if (filters.noFilesOnly) {
+      const types = ["3d", "prova", "brief", "quotation", "photos", "invoice"];
+      const anyFiles = types.some((t) => countFiles(p, t) > 0);
+      if (anyFiles) return false;
+    }
+    if (filters.no3d && countFiles(p, "3d") > 0) return false;
+    if (filters.noProva && countFiles(p, "prova") > 0) return false;
+    if (filters.noBrief && countFiles(p, "brief") > 0) return false;
+    if (filters.noQuotation && countFiles(p, "quotation") > 0) return false;
+    if (filters.noPhotos && countFiles(p, "photos") > 0) return false;
+    if (filters.noInvoice && countFiles(p, "invoice") > 0) return false;
+    return true;
+  });
+
+  return (
+    <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
+      <h2 className="order-title">Production - Projects</h2>
+
+      {error && <div className="error-message">❌ {error}</div>}
+
+      <div className="status-buttons">
+        <button onClick={fetchProjects} className="form-button refresh-button">
+          <span className="button-icon">🔄</span> Refresh
+        </button>
+        <button onClick={() => setShowFilters(true)} className="form-button submit-button">
+          Filters
+        </button>
+      </div>
+      {showFilters && (
+        <div className="modal" role="dialog" aria-modal="true" onClick={() => setShowFilters(false)}>
+          <div
+            className="modal-content production-filters-modal"
+            style={{ maxWidth: 1000, margin: "2rem auto", borderRadius: 10 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>Filters</h3>
+              <button className="form-button cancel-button" onClick={() => setShowFilters(false)}>Close</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "row" }}>
+              <div style={{ flex: 2, marginRight: 24 }}>
+                <h4 style={{ marginBottom: 12 }}>Project Filters</h4>
+                <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+                  <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
+                    <label className="form-label">Name</label>
+                    <input className="form-input" name="name" value={filters.name} onChange={handleFilterChange} placeholder="Search name" />
+                  </div>
+                  <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
+                    <label className="form-label">Responsible</label>
+                    <input className="form-input" name="responsible" value={filters.responsible} onChange={handleFilterChange} placeholder="Search responsible" />
+                  </div>
+                  <div className="form-field" style={{ flex: 1, minWidth: 110 }}>
+                    <label className="form-label">Job No</label>
+                    <input className="form-input" name="job" value={filters.job} onChange={handleFilterChange} placeholder="Search job no" />
+                  </div>
+                  <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
+                    <label className="form-label">Status</label>
+                    <input className="form-input" name="status" value={filters.status} onChange={handleFilterChange} placeholder="Search status" />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Install From</label>
+                    <input type="date" className="form-input" name="installFrom" value={filters.installFrom} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Install To</label>
+                    <input type="date" className="form-input" name="installTo" value={filters.installTo} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Production From</label>
+                    <input type="date" className="form-input" name="productionFrom" value={filters.productionFrom} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Production To</label>
+                    <input type="date" className="form-input" name="productionTo" value={filters.productionTo} onChange={handleFilterChange} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Event From</label>
+                    <input type="date" className="form-input" name="eventFrom" value={filters.eventFrom} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Event To</label>
+                    <input type="date" className="form-input" name="eventTo" value={filters.eventTo} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Disassembly From</label>
+                    <input type="date" className="form-input" name="disassemblyFrom" value={filters.disassemblyFrom} onChange={handleFilterChange} />
+                  </div>
+                  <div className="form-field" style={{ flex: 1 }}>
+                    <label className="form-label">Disassembly To</label>
+                    <input type="date" className="form-input" name="disassemblyTo" value={filters.disassemblyTo} onChange={handleFilterChange} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 240, borderLeft: "1px solid #eee", paddingLeft: 24 }}>
+                <h4 style={{ marginBottom: 10 }}>Files Filters</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label className="form-label" style={{ fontWeight: 500 }}>
+                    <input type="checkbox" name="noFilesOnly" checked={filters.noFilesOnly} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    Only no files uploaded
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="no3d" checked={filters.no3d} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No 3D
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="noProva" checked={filters.noProva} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No Prova
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="noBrief" checked={filters.noBrief} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No Brief
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="noQuotation" checked={filters.noQuotation} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No Quotation
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="noPhotos" checked={filters.noPhotos} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No Photos
+                  </label>
+                  <label className="form-label">
+                    <input type="checkbox" name="noInvoice" checked={filters.noInvoice} onChange={handleFilterChange} style={{ marginRight: 7 }} />
+                    No Invoice
+                  </label>
+                </div>
+                <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
+                  <button
+                    className="form-button reset-button"
+                    style={{ width: "100%", padding: "0.5em 1em" }}
+                    onClick={() =>
+                      setFilters({
+                        name: "",
+                        responsible: "",
+                        job: "",
+                        status: "",
+                        installFrom: "",
+                        installTo: "",
+                        productionFrom: "",
+                        productionTo: "",
+                        eventFrom: "",
+                        eventTo: "",
+                        disassemblyFrom: "",
+                        disassemblyTo: "",
+                        noFilesOnly: false,
+                        no3d: false,
+                        noProva: false,
+                        noBrief: false,
+                        noQuotation: false,
+                        noPhotos: false,
+                        noInvoice: false,
+                      })
+                    }
+                  >
+                    Clear Filters
+                  </button>
+                  <button
+                    className="form-button submit-button"
+                    style={{ width: "100%", padding: "0.5em 1em" }}
+                    onClick={() => setShowFilters(false)}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="loading">
+          <span className="spinner"></span> Loading...
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <p className="no-orders">No projects found.</p>
+      ) : (
+        <div className="table-container">
+          <table className="order-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Responsible</th>
+                <th>Job No</th>
+                <th>Status</th>
+                <th>Install</th>
+                <th>Production</th>
+                <th>Event</th>
+                <th>Disassembly</th>
+                <th>3D</th>
+                <th>Prova</th>
+                <th>Brief</th>
+                <th>Quotation</th>
+                <th>Photos</th>
+                <th>Invoice</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProjects.map((p) => (
+                <tr key={p.id}>
+                  <td className="table-cell">{p.id}</td>
+                  <td className="table-cell">{p.name}</td>
+                  <td className="table-cell">{p.Response_name || "-"}</td>
+                  <td className="table-cell">{p.job_no || "-"}</td>
+                  <td className="table-cell">{p.status || "-"}</td>
+                  <td className="table-cell">
+                    {p?.dates?.install_end_date
+                      ? `${p?.dates?.install_date || "-"} → ${p?.dates?.install_end_date || "-"}`
+                      : (p?.dates?.install_date || "-")}
+                  </td>
+                  <td className="table-cell">
+                    {p?.dates?.production_end_date
+                      ? `${p?.dates?.production_date || "-"} → ${p?.dates?.production_end_date || "-"}`
+                      : (p?.dates?.production_date || "-")}
+                  </td>
+                  <td className="table-cell">
+                    {p?.dates?.event_end_date
+                      ? `${p?.dates?.event_date || "-"} → ${p?.dates?.event_end_date || "-"}`
+                      : (p?.dates?.event_date || "-")}
+                  </td>
+                  <td className="table-cell">
+                    {p?.dates?.remove_end_date
+                      ? `${p?.dates?.remove_date || "-"} → ${p?.dates?.remove_end_date || "-"}`
+                      : (p?.dates?.remove_date || "-")}
+                  </td>
+                  <td className="table-cell">{countFiles(p, "3d")}</td>
+                  <td className="table-cell">{countFiles(p, "prova")}</td>
+                  <td className="table-cell">{countFiles(p, "brief")}</td>
+                  <td className="table-cell">{countFiles(p, "quotation")}</td>
+                  <td className="table-cell">{countFiles(p, "photos")}</td>
+                  <td className="table-cell">{countFiles(p, "invoice")}</td>
+                  <td className="table-cell">
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="form-button approve-button" onClick={() => openFiles(p)}>
+                        View Files
+                      </button>
+                      <a href={`/arkann/project/${p.id}/edit`} className="form-button submit-button">
+                        Edit
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modalProject && (
+        <div className="modal" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <h3 className="modal-title">Files - {modalProject.name}</h3>
+            <div style={{ maxHeight: 400, overflow: "auto" }}>
+              {["3d", "prova", "brief", "quotation", "photos", "invoice"].map((type) => {
+                const items = Array.isArray(modalProject.files?.[type]) ? modalProject.files[type] : [];
+                return (
+                  <div key={type} style={{ marginBottom: 12 }}>
+                    <strong style={{ textTransform: "uppercase" }}>{type}</strong>
+                    {items.length === 0 ? (
+                      <div style={{ color: "#999" }}>No files</div>
+                    ) : (
+                      <ol style={{ margin: "6px 0 0 16px" }}>
+                        {items.map((f, idx) => {
+                          const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
+                          const name = f.name || f.path || f;
+                          return (
+                            <li key={idx}>
+                              <a href={href} target="_blank" rel="noreferrer">
+                                {name}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="modal-buttons">
+              <button onClick={closeFiles} className="form-button cancel-button">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProductionPage;
+
+

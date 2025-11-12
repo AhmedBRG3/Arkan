@@ -11,9 +11,10 @@ const api = {
 const Roles = [
   "admin",
   "finance",
+  "production",
   "account manager",
-  "designer",
-  "designer manager",
+  // "designer",
+  // "designer manager",
 ];
 
 export default function UsersPage({ isSidebarOpen }) {
