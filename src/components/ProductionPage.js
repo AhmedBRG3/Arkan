@@ -16,6 +16,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
     contact: "",
     job: "",
     status: "",
+    location: "", // <-- ADDED
     installFrom: "",
     installTo: "",
     productionFrom: "",
@@ -77,6 +78,17 @@ const ProductionPage = ({ isSidebarOpen }) => {
     return isNaN(d.getTime()) ? null : d;
     };
 
+  const getLocationText = (p) => {
+    const loc = p?.location;
+    if (!loc) return "";
+    if (typeof loc === "string") return loc;
+    if (typeof loc === "object") {
+      const parts = [loc.country, loc.state, loc.details].filter(Boolean);
+      return parts.join(" - ");
+    }
+    return "";
+  };
+
   const rangesOverlap = (startA, endA, startB, endB) => {
     if (!startB && !endB) return true; // no filter applied
     const aStart = startA ? new Date(startA) : null;
@@ -96,6 +108,10 @@ const ProductionPage = ({ isSidebarOpen }) => {
     if (filters.contact && !(p.Response_name || "").toLowerCase().includes(filters.contact.toLowerCase())) return false;
     if (filters.job && !(p.job_no || "").toLowerCase().includes(filters.job.toLowerCase())) return false;
     if (filters.status && !(p.status || "").toLowerCase().includes(filters.status.toLowerCase())) return false;
+    if (filters.location) {
+      const locText = getLocationText(p).toLowerCase();
+      if (!locText.includes(filters.location.toLowerCase())) return false;
+    }
 
     const d = p?.dates || {};
     // date range filters per column
@@ -163,6 +179,10 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
                     <label className="form-label">Status</label>
                     <input className="form-input" name="status" value={filters.status} onChange={handleFilterChange} placeholder="Search status" />
+                  </div>
+                  <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
+                    <label className="form-label">Location</label>
+                    <input className="form-input" name="location" value={filters.location} onChange={handleFilterChange} placeholder="Search location" />
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
@@ -244,6 +264,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         contact: "",
                         job: "",
                         status: "",
+                        location: "",
                         installFrom: "",
                         installTo: "",
                         productionFrom: "",
@@ -285,14 +306,15 @@ const ProductionPage = ({ isSidebarOpen }) => {
       ) : filteredProjects.length === 0 ? (
         <p className="no-orders">No projects found.</p>
       ) : (
-        <div className="table-container" style={{ overflowX: "auto" }}>
-          <table className="order-table" style={{ minWidth: 1200, whiteSpace: "nowrap" }}>
+        <div >
+          <table className="order-table" style={{overflowX: "auto", whiteSpace: "nowrap" }}>
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Contact</th>
                 <th>Job No</th>
+                <th>Location</th>
                 <th>Status</th>
                 <th>Install</th>
                 <th>Production</th>
@@ -315,6 +337,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   <td className="table-cell">{p.name}</td>
                   <td className="table-cell">{p.Response_name || "-"}</td>
                   <td className="table-cell">{p.job_no || "-"}</td>
+                  <td className="table-cell">{getLocationText(p) || "-"}</td>
                   <td className="table-cell">{p.status || "-"}</td>
                   <td className="table-cell">
                     {p?.dates?.install_end_date

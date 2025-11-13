@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/OrderListPage.css";
+import { COUNTRIES_STATES } from "../static/countries";
+// Minimal country → states for demo, should be imported or defined elsewhere for production
+
 
 const API_BASE = "https://arkanaltafawuq.com/arkan-system";
 const api = (p) => `${API_BASE}/${String(p).replace(/^\/+/, "")}`;
@@ -24,6 +27,9 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     event_date: "",
     disassembly_date: "",
     notes: "",
+    country: "",
+    state: "",
+    location_details: "",
   });
   const [files, setFiles] = useState({
     "3d": null,
@@ -48,11 +54,36 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         job_no: data.project.job_no || "",
         status: data.project.status || "new",
         install_date: data.project?.dates?.install_date || "",
+        install_end_date: data.project?.dates?.install_end_date || "",
         production_date: data.project?.dates?.production_date || "",
+        production_end_date: data.project?.dates?.production_end_date || "",
         event_date: data.project?.dates?.event_date || "",
+        event_end_date: data.project?.dates?.event_end_date || "",
+        remove_date: data.project?.dates?.remove_date || "",
+        remove_end_date: data.project?.dates?.remove_end_date || "",
         disassembly_date: data.project?.dates?.disassembly_date || "",
         notes: data.project?.notes || "",
+        country: data.project?.location?.country || "",
+        state: data.project?.location?.state || "",
+        location_details: data.project?.location?.details || "",
       });
+
+            // Try fetching location details explicitly (if backend separates it)
+            try {
+              const locRes = await fetch(api(`Project_get_location.php?project_id=${encodeURIComponent(id)}`));
+              const locData = await locRes.json();
+              if (locData?.success && locData.location) {
+                setForm((prev) => ({
+                  ...prev,
+                  country: locData.location.country || prev.country || "",
+                  state: locData.location.state || prev.state || "",
+                  location_details: locData.location.details || prev.location_details || "",
+                }));
+              }
+            } catch (_) {
+              // ignore location fetch errors; form already initialized from main payload if available
+            }
+            
     } catch (e) {
       setError(e.message || "Failed to load");
     } finally {
@@ -66,7 +97,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     setSuccess("");
     try {
       const effective = { ...form, ...overrides };
-      // 1) Update basic fields
+      // 1) Update basic fields + location
       {
         const res = await fetch(api("projects_update.php"), {
           method: "POST",
@@ -78,6 +109,9 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             job_no: effective.job_no,
             status: effective.status,
             note: effective.notes,
+            country: effective.country || "",
+            state: effective.state || "",
+            location_details: effective.location_details || "",
           }),
         });
         const data = await res.json();
@@ -105,6 +139,26 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         if (!data.success) throw new Error(data.message || "Save dates failed");
       }
 
+      // 3) Upsert location (only if provided)
+      if (effective.country || effective.state || effective.location_details) {
+        const res = await fetch(api("project_add_location.php"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            project_id: Number(id),
+            country: effective.country || "",
+            state: effective.state || "",
+            details: effective.location_details || "",
+          }),
+        });
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (!data.success) throw new Error(data.message || "Save location failed");
+        } catch {
+          if (!res.ok) throw new Error(`Save location failed (HTTP ${res.status}): ${text.slice(0,200)}`);
+        }
+      }
       // 3) Upload any selected files (if provided)
       {
         const tasks = [];
@@ -134,11 +188,20 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  const handleLocationCountryChange = (e) => {
+    const country = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      country: country,
+      state: "", // reset state on country change
+    }));
+  };
+
   const handleFileChange = (e) => {
     const { name, files: fileList } = e.target;
     setFiles((prev) => ({ ...prev, [name]: fileList[0] || null }));
   };
-
 
   const uploadOne = async (type, file) => {
     const fd = new FormData();
@@ -153,8 +216,6 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     } catch (_) { /* ignore */ }
     if (!ok) throw new Error("Upload failed");
   };
-
-
 
   const renderFilesList = (type) => {
     const items = Array.isArray(project?.files?.[type]) ? project.files[type] : [];
@@ -210,15 +271,6 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             </div>
             <div className="form-field">
               <label className="form-label">Status</label>
-              {/* <select className="form-select" name="status" value={form.status} onChange={handleChange}>
-              <option value="new">new</option>
-              <option value="design phase">design phase</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Pending">Pending</option>
-              <option value="In Deployment">In Deployment</option>
-              <option value="Approved">Approved</option>
-              <option value="Completed">Completed</option>
-              </select> */}
               <div className="status-buttons" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {["new","design phase","Cancelled","Pending","In Deployment","Approved","Completed"].map((s) => (
                   <button
@@ -244,6 +296,53 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 style={{ resize: "vertical", minHeight: 80 }}
               />
             </div>
+
+            {/* Location Fields */}
+            <div className="form-field" style={{border: "1px solid #ddd", borderRadius: 6, margin: "12px 0", padding: 12, background: "#fafcff"}}>
+              <h3 style={{margin: "0 0 10px 0"}}>Location</h3>
+              <div className="form-field">
+                <label className="form-label">Country</label>
+                <select
+                  name="country"
+                  value={form.country || ""}
+                  onChange={handleLocationCountryChange}
+                  className="form-select"
+                >
+                  <option value="">Select country</option>
+                  {Object.keys(COUNTRIES_STATES).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field">
+                <label className="form-label">State</label>
+                <select
+                  name="state"
+                  value={form.state || ""}
+                  onChange={handleChange}
+                  className="form-select"
+                  disabled={!form.country}
+                >
+                  <option value="">{form.country ? "Select state" : "Select country first"}</option>
+                  {(COUNTRIES_STATES[form.country] || []).map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field">
+                <label className="form-label">Details</label>
+                <textarea
+                  name="location_details"
+                  value={form.location_details || ""}
+                  className="form-input"
+                  style={{ resize: "vertical", minHeight: 56 }}
+                  onChange={handleChange}
+                  placeholder="Location details, address, venue..."
+                />
+              </div>
+            </div>
+            {/* End Location Fields */}
+
             <div className="form-buttons">
               <button className="form-button submit-button" onClick={saveAll} disabled={saving}>
                 {saving ? <span className="spinner"></span> : "Save Basic"}
@@ -361,5 +460,3 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
 };
 
 export default ProjectEditPage;
-
-

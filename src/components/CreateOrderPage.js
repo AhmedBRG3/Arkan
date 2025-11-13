@@ -1,6 +1,7 @@
 // components/CreateOrderPage.jsx
 import React, { useState } from "react";
 import "../styles/CreateOrderPage.css";
+import { COUNTRIES_STATES } from "../static/countries";
 
 const CreateOrderPage = ({ isSidebarOpen }) => {
   const [form, setForm] = useState({
@@ -113,6 +114,22 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     }
   };
 
+  const addLocation = async (projectId) => {
+    const res = await fetch("https://arkanaltafawuq.com/arkan-system/project_add_location.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        project_id: projectId,
+        location: form.location,
+        country: form.country,
+        state: form.state,
+        details: form.details,
+      }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Adding location failed");
+    return data.id;
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -127,7 +144,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     try {
       const projectId = await createProject();
       await upsertDates(projectId);
-
+      await addLocation(projectId);
       const uploads = [];
       ["3d", "prova", "brief", "quotation", "photos", "invoice"].forEach((t) => {
         const f = files[t];
@@ -217,6 +234,58 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             placeholder="Notes"
             style={{ resize: "vertical", minHeight: 80 }}
           />
+        </div>
+
+        <div className="form-field">
+          <card>
+            <h3>Location</h3>              
+            <div className="form-field">
+          <label className="form-label">Country</label>
+          <select
+            name="country"
+            value={form.country || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              setForm((prev) => ({
+                ...prev,
+                country: value,
+                state: "", // reset state on country change
+              }));
+            }}
+            className="form-select"
+          >
+            <option value="">Select country</option>
+            {Object.keys(COUNTRIES_STATES).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-field">
+          <label className="form-label">State</label>
+          <select
+            name="state"
+            value={form.state || ""}
+            onChange={handleChange}
+            className="form-select"
+            disabled={!form.country}
+          >
+            <option value="">{form.country ? "Select state" : "Select country first"}</option>
+            {(COUNTRIES_STATES[form.country] || []).map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+            <div className="form-field">
+              <label className="form-label">Details</label>
+              <textarea
+                name="details"
+                value={form.details || ""}   
+                className="form-input"
+                style={{ resize: "vertical", minHeight: 80 }}
+                onChange={handleChange}
+              />
+            </div>
+          </card>
         </div>
 
         <div className="form-group">

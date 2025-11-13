@@ -59,8 +59,8 @@ const Sidebar = ({ role: roleProp }) => {
     ],
     "account manager": [
       { to: "/create-order", label: "Create Orders", icon: <ShoppingCart size={18} /> },
-      { to: "/clients", label: "Clients", icon: <FileText size={18} /> },
-      { to: "/order-list", label: "Order List", icon: <ClipboardList size={18} /> },
+      { to: "/production", label: "Production", icon: <ClipboardList size={18} /> },
+
     ],
     "designer manager": [
       { to: "/designer-manager", label: "Designer Manager", icon: <Palette size={18} /> },
