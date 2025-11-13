@@ -23,6 +23,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     production_date: "",
     event_date: "",
     disassembly_date: "",
+    notes: "",
   });
   const [files, setFiles] = useState({
     "3d": null,
@@ -50,6 +51,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         production_date: data.project?.dates?.production_date || "",
         event_date: data.project?.dates?.event_date || "",
         disassembly_date: data.project?.dates?.disassembly_date || "",
+        notes: data.project?.notes || "",
       });
     } catch (e) {
       setError(e.message || "Failed to load");
@@ -75,6 +77,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             Response_name: effective.Response_name,
             job_no: effective.job_no,
             status: effective.status,
+            note: effective.notes,
           }),
         });
         const data = await res.json();
@@ -229,6 +232,17 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="form-field">
+              <label className="form-label">Notes</label>
+              <textarea
+                name="notes"
+                value={form.notes || ""}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="Notes"
+                style={{ resize: "vertical", minHeight: 80 }}
+              />
             </div>
             <div className="form-buttons">
               <button className="form-button submit-button" onClick={saveAll} disabled={saving}>

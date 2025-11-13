@@ -186,7 +186,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             value={form.job_no}
             onChange={handleChange}
             className="form-input"
-            placeholder="JOB-2025-001"
+            placeholder="001"
           />
         </div>
 
@@ -206,6 +206,17 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <option value="Approved">Approved</option>
             <option value="Completed">Completed</option>
           </select>
+        </div>
+        <div className="form-field">
+          <label className="form-label">Notes</label>
+          <textarea
+            name="notes"
+            value={form.notes || ""}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="Notes"
+            style={{ resize: "vertical", minHeight: 80 }}
+          />
         </div>
 
         <div className="form-group">

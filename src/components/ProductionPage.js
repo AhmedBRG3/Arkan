@@ -13,7 +13,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     name: "",
-    responsible: "",
+    contact: "",
     job: "",
     status: "",
     installFrom: "",
@@ -93,7 +93,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const filteredProjects = projects.filter((p) => {
     // text filters
     if (filters.name && !(p.name || "").toLowerCase().includes(filters.name.toLowerCase())) return false;
-    if (filters.responsible && !(p.Response_name || "").toLowerCase().includes(filters.responsible.toLowerCase())) return false;
+    if (filters.contact && !(p.Response_name || "").toLowerCase().includes(filters.contact.toLowerCase())) return false;
     if (filters.job && !(p.job_no || "").toLowerCase().includes(filters.job.toLowerCase())) return false;
     if (filters.status && !(p.status || "").toLowerCase().includes(filters.status.toLowerCase())) return false;
 
@@ -153,8 +153,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     <input className="form-input" name="name" value={filters.name} onChange={handleFilterChange} placeholder="Search name" />
                   </div>
                   <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
-                    <label className="form-label">Responsible</label>
-                    <input className="form-input" name="responsible" value={filters.responsible} onChange={handleFilterChange} placeholder="Search responsible" />
+                    <label className="form-label">Contact</label>
+                    <input className="form-input" name="contact" value={filters.contact} onChange={handleFilterChange} placeholder="Search contact" />
                   </div>
                   <div className="form-field" style={{ flex: 1, minWidth: 110 }}>
                     <label className="form-label">Job No</label>
@@ -241,7 +241,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     onClick={() =>
                       setFilters({
                         name: "",
-                        responsible: "",
+                        contact: "",
                         job: "",
                         status: "",
                         installFrom: "",
@@ -291,13 +291,14 @@ const ProductionPage = ({ isSidebarOpen }) => {
               <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Responsible</th>
+                <th>Contact</th>
                 <th>Job No</th>
                 <th>Status</th>
                 <th>Install</th>
                 <th>Production</th>
                 <th>Event</th>
-                <th>Disassembly</th>
+                <th>Off</th>
+                <th>Notes</th>
                 <th>3D</th>
                 <th>Prova</th>
                 <th>Brief</th>
@@ -335,6 +336,24 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       ? `${p?.dates?.remove_date || "-"} → ${p?.dates?.remove_end_date || "-"}`
                       : (p?.dates?.remove_date || "-")}
                   </td>
+                  <td
+                    className="table-cell"
+                    style={{ cursor: p.notes ? "pointer" : "default", textDecoration: p.notes ? "underline dotted" : "none" }}
+                    onClick={() => {
+                      if (p.notes) {
+                        setModalProject({
+                          ...p,
+                          showNotesOnly: true
+                        });
+                      }
+                    }}
+                  >
+                    {p.notes ? (
+                      <span title="Click to view full notes">{(p.notes.length > 30 ? p.notes.slice(0, 30) + "…" : p.notes)}</span>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td className="table-cell">{countFiles(p, "3d")}</td>
                   <td className="table-cell">{countFiles(p, "prova")}</td>
                   <td className="table-cell">{countFiles(p, "brief")}</td>
@@ -359,41 +378,57 @@ const ProductionPage = ({ isSidebarOpen }) => {
       )}
 
       {modalProject && (
-        <div className="modal" role="dialog" aria-modal="true">
-          <div className="modal-content">
-            <h3 className="modal-title">Files - {modalProject.name}</h3>
-            <div style={{ maxHeight: 400, overflow: "auto" }}>
-              {["3d", "prova", "brief", "quotation", "photos", "invoice"].map((type) => {
-                const items = Array.isArray(modalProject.files?.[type]) ? modalProject.files[type] : [];
-                return (
-                  <div key={type} style={{ marginBottom: 12 }}>
-                    <strong style={{ textTransform: "uppercase" }}>{type}</strong>
-                    {items.length === 0 ? (
-                      <div style={{ color: "#999" }}>No files</div>
-                    ) : (
-                      <ol style={{ margin: "6px 0 0 16px" }}>
-                        {items.map((f, idx) => {
-                          const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
-                          const name = f.name || f.path || f;
-                          return (
-                            <li key={idx}>
-                              <a href={href} target="_blank" rel="noreferrer">
-                                {name}
-                              </a>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="modal-buttons">
-              <button onClick={closeFiles} className="form-button cancel-button">
-                Close
-              </button>
-            </div>
+        <div className="modal" role="dialog" aria-modal="true" onClick={closeFiles}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            {modalProject.showNotesOnly ? (
+              <>
+                <h3 className="modal-title">Notes - {modalProject.name}</h3>
+                <div style={{ whiteSpace: "pre-wrap", padding: "8px 0", color: "#333" }}>
+                  {modalProject.notes || "-"}
+                </div>
+                <div className="modal-buttons">
+                  <button onClick={closeFiles} className="form-button cancel-button">
+                    Close
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="modal-title">Files - {modalProject.name}</h3>
+                <div style={{ maxHeight: 400, overflow: "auto" }}>
+                  {["3d", "prova", "brief", "quotation", "photos", "invoice"].map((type) => {
+                    const items = Array.isArray(modalProject.files?.[type]) ? modalProject.files[type] : [];
+                    return (
+                      <div key={type} style={{ marginBottom: 12 }}>
+                        <strong style={{ textTransform: "uppercase" }}>{type}</strong>
+                        {items.length === 0 ? (
+                          <div style={{ color: "#999" }}>No files</div>
+                        ) : (
+                          <ol style={{ margin: "6px 0 0 16px" }}>
+                            {items.map((f, idx) => {
+                              const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
+                              const name = f.name || f.path || f;
+                              return (
+                                <li key={idx}>
+                                  <a href={href} target="_blank" rel="noreferrer">
+                                    {name}
+                                  </a>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="modal-buttons">
+                  <button onClick={closeFiles} className="form-button cancel-button">
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
