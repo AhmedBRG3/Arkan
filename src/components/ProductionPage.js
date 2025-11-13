@@ -285,8 +285,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
       ) : filteredProjects.length === 0 ? (
         <p className="no-orders">No projects found.</p>
       ) : (
-        <div className="table-container">
-          <table className="order-table">
+        <div className="table-container" style={{ overflowX: "auto" }}>
+          <table className="order-table" style={{ minWidth: 1200, whiteSpace: "nowrap" }}>
             <thead>
               <tr>
                 <th>ID</th>
