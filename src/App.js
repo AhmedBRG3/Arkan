@@ -29,6 +29,7 @@ import SessionTest from "./components/SessionTest";
 import ExcelImportPage from "./components/ExcelImportPage";
 import ProductionPage from "./components/ProductionPage";
 import ProjectEditPage from "./components/ProjectEditPage";
+import AccountmanagerPage from "./components/AccountmanagerPage";
 const LayoutWithSidebar = ({ children }) => {
   const location = useLocation();
   const showSidebar = location.pathname !== "/Login";
@@ -79,6 +80,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProductionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account-manager"
+            element={
+              <ProtectedRoute>
+                <AccountmanagerPage />
               </ProtectedRoute>
             }
           />

@@ -14,19 +14,19 @@ const COUNTRY_OPTIONS = [
   "Bahrain",
   "Oman",
   "Jordan",
-  "Egypt",
+  "Egypt",  
   "Turkey",
   "Lebanon",
   "Morocco",
   "Tunisia",
-  "Algeria",
+  "Algeria",  
   "Iraq",
   "Libya",
   "Sudan",
   "Other",
 ];
 
-const ProductionPage = ({ isSidebarOpen }) => {
+const AccountmanagerPage = ({ isSidebarOpen }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,8 +40,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
     location: "", // this now refers to country
     installFrom: "",
     installTo: "",
-    productionFrom: "",
-    productionTo: "",
+    // productionFrom: "",
+    // productionTo: "",
     eventFrom: "",
     eventTo: "",
     disassemblyFrom: "",
@@ -146,28 +146,28 @@ const ProductionPage = ({ isSidebarOpen }) => {
     const d = p?.dates || {};
     // date range filters per column
     if (!rangesOverlap(d.install_date, d.install_end_date, filters.installFrom, filters.installTo)) return false;
-    if (!rangesOverlap(d.production_date, d.production_end_date, filters.productionFrom, filters.productionTo)) return false;
+    // if (!rangesOverlap(d.production_date, d.production_end_date, filters.productionFrom, filters.productionTo)) return false;
     if (!rangesOverlap(d.event_date, d.event_end_date, filters.eventFrom, filters.eventTo)) return false;
     if (!rangesOverlap(d.remove_date, d.remove_end_date, filters.disassemblyFrom, filters.disassemblyTo)) return false;
 
     // no files filters
-    // if (filters.noFilesOnly) {
-    //   const types = ["3d", "prova", "brief", "quotation", "photos", "invoice"];
-    //   const anyFiles = types.some((t) => countFiles(p, t) > 0);
-    //   if (anyFiles) return false;
-    // }
-    // if (filters.no3d && countFiles(p, "3d") > 0) return false;
-    // if (filters.noProva && countFiles(p, "prova") > 0) return false;
-    // if (filters.noBrief && countFiles(p, "brief") > 0) return false;
-    // if (filters.noQuotation && countFiles(p, "quotation") > 0) return false;
-    // if (filters.noPhotos && countFiles(p, "photos") > 0) return false;
-    // if (filters.noInvoice && countFiles(p, "invoice") > 0) return false;
+    if (filters.noFilesOnly) {
+      const types = ["3d", "prova", "brief", "quotation", "photos", "invoice"];
+      const anyFiles = types.some((t) => countFiles(p, t) > 0);
+      if (anyFiles) return false;
+    }
+    if (filters.no3d && countFiles(p, "3d") > 0) return false;
+    if (filters.noProva && countFiles(p, "prova") > 0) return false;
+    if (filters.noBrief && countFiles(p, "brief") > 0) return false;
+    if (filters.noQuotation && countFiles(p, "quotation") > 0) return false;
+    if (filters.noPhotos && countFiles(p, "photos") > 0) return false;
+    if (filters.noInvoice && countFiles(p, "invoice") > 0) return false;
     return true;
   });
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Production - Projects</h2>
+      <h2 className="order-title">Orders Management - Projects</h2>
 
       {error && <div className="error-message">❌ {error}</div>}
 
@@ -192,7 +192,6 @@ const ProductionPage = ({ isSidebarOpen }) => {
             </div>
             <div style={{ display: "flex", flexDirection: "row" }}>
               <div style={{ flex: 2, marginRight: 24 }}>
-                <h4 style={{ marginBottom: 12 }}>Project Filters</h4>
                 <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
                   <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
                     <label className="form-label">Name</label>
@@ -236,14 +235,14 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     <label className="form-label">Install To</label>
                     <input type="date" className="form-input" name="installTo" value={filters.installTo} onChange={handleFilterChange} />
                   </div>
-                  <div className="form-field" style={{ flex: 1 }}>
+                  {/* <div className="form-field" style={{ flex: 1 }}>
                     <label className="form-label">Production From</label>
                     <input type="date" className="form-input" name="productionFrom" value={filters.productionFrom} onChange={handleFilterChange} />
                   </div>
                   <div className="form-field" style={{ flex: 1 }}>
                     <label className="form-label">Production To</label>
                     <input type="date" className="form-input" name="productionTo" value={filters.productionTo} onChange={handleFilterChange} />
-                  </div>
+                  </div> */}
                 </div>
                 <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
                   <div className="form-field" style={{ flex: 1 }}>
@@ -266,7 +265,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
               </div>
               <div style={{ flex: 1, minWidth: 240, borderLeft: "1px solid #eee", paddingLeft: 24 }}>
                 <h4 style={{ marginBottom: 10 }}>Files Filters</h4>
-                {/* <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <label className="form-label" style={{ fontWeight: 500 }}>
                     <input type="checkbox" name="noFilesOnly" checked={filters.noFilesOnly} onChange={handleFilterChange} style={{ marginRight: 7 }} />
                     Only no files uploaded
@@ -295,7 +294,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     <input type="checkbox" name="noInvoice" checked={filters.noInvoice} onChange={handleFilterChange} style={{ marginRight: 7 }} />
                     No Invoice
                   </label>
-                </div> */}
+                </div>
                 <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
                   <button
                     className="form-button reset-button"
@@ -309,8 +308,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         location: "",
                         installFrom: "",
                         installTo: "",
-                        productionFrom: "",
-                        productionTo: "",
+                        // productionFrom: "",
+                        // productionTo: "",
                         eventFrom: "",
                         eventTo: "",
                         disassemblyFrom: "",
@@ -359,16 +358,16 @@ const ProductionPage = ({ isSidebarOpen }) => {
                 <th>Location</th>
                 <th>Status</th>
                 <th>Install</th>
-                <th>Production</th>
+                {/* <th>Production</th> */}
                 <th>Event</th>
                 <th>Off</th>
                 <th>Notes</th>
-                {/* <th>3D</th>
+                <th>3D</th>
                 <th>Prova</th>
                 <th>Brief</th>
                 <th>Quotation</th>
                 <th>Photos</th>
-                <th>Invoice</th> */}
+                <th>Invoice</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -391,23 +390,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         <div>{p?.dates?.install_date}</div>
                         {p?.dates?.install_end_date && (
                           <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.install_end_date}</div>
-                        </>
-                      )}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="table-cell">
-                    {p?.dates?.production_date ? (
-                      <div>
-                        <div>{p?.dates?.production_date}</div>
-                        {p?.dates?.production_end_date && (
-                          <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.production_end_date}</div>
+                            <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                            <div>{p?.dates?.install_end_date}</div>
                           </>
                         )}
                       </div>
@@ -415,14 +399,29 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       "-"
                     )}
                   </td>
+                  {/* <td className="table-cell">
+                    {p?.dates?.production_date ? (
+                      <div>
+                        <div>{p?.dates?.production_date}</div>
+                        {p?.dates?.production_end_date && (
+                          <>
+                            <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                            <div>{p?.dates?.production_end_date}</div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </td> */}
                   <td className="table-cell">
                     {p?.dates?.event_date ? (
                       <div>
                         <div>{p?.dates?.event_date}</div>
                         {p?.dates?.event_end_date && (
                           <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.event_end_date}</div>
+                            <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                            <div>{p?.dates?.event_end_date}</div>
                           </>
                         )}
                       </div>
@@ -436,11 +435,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         <div>{p?.dates?.remove_date}</div>
                         {p?.dates?.remove_end_date && (
                           <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.remove_end_date}</div>
+                            <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                            <div>{p?.dates?.remove_end_date}</div>
                           </>
                         )}
-                      </div> 
+                      </div>
                     ) : (
                       "-"
                     )}
@@ -463,37 +462,37 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       "-"
                     )}
                   </td>
-                  {/* <td className="table-cell">{countFiles(p, "3d")}</td>
+                  <td className="table-cell">{countFiles(p, "3d")}</td>
                   <td className="table-cell">{countFiles(p, "prova")}</td>
                   <td className="table-cell">{countFiles(p, "brief")}</td>
                   <td className="table-cell">{countFiles(p, "quotation")}</td>
                   <td className="table-cell">{countFiles(p, "photos")}</td>
-                  <td className="table-cell">{countFiles(p, "invoice")}</td> */}
-                  <td className="table-cell">
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <span
-                        className="icon-button"
-                        style={{ cursor: "pointer", padding: 4, fontSize: 15 }}
-                        title="View Files"
-                        role="button"
-                        tabIndex={0}
-                        aria-label="View Files"
-                        onClick={() => openFiles(p)}
-                        onKeyPress={e => (e.key === 'Enter' || e.key === ' ') && openFiles(p)}
-                      >
-                        📂
-                      </span>
-                      <a
-                        href={`/arkann/project/${p.id}/edit`}
-                        className="icon-button"
-                        style={{ padding: 4, fontSize: 15 }}
-                        title="Edit Project"
-                        aria-label="Edit Project"
-                      >
-                        ✏️
-                      </a>
-                    </div>
-                  </td>
+                  <td className="table-cell">{countFiles(p, "invoice")}</td>
+                    <td className="table-cell">
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <span
+                          className="icon-button"
+                          style={{ cursor: "pointer", padding: 4, fontSize: 15 }}
+                          title="View Files"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="View Files"
+                          onClick={() => openFiles(p)}
+                          onKeyPress={e => (e.key === 'Enter' || e.key === ' ') && openFiles(p)}
+                        >
+                          📂
+                        </span>
+                        <a
+                          href={`/arkann/project/${p.id}/edit`}
+                          className="icon-button"
+                          style={{ padding: 4, fontSize: 15 }}
+                          title="Edit Project"
+                          aria-label="Edit Project"
+                        >
+                          ✏️
+                        </a>
+                      </div>
+                    </td>
                 </tr>
               ))}
             </tbody>
@@ -560,5 +559,5 @@ const ProductionPage = ({ isSidebarOpen }) => {
   );
 };
 
-export default ProductionPage;
+export default AccountmanagerPage;
 

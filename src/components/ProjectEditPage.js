@@ -217,6 +217,25 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     if (!ok) throw new Error("Upload failed");
   };
 
+  const formatForInput = (value) => {
+    if (!value) return "";
+    // If already date-only, append midnight time
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T00:00`;
+    // Normalize common "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DDTHH:MM"
+    const normalized = value.replace(" ", "T");
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(normalized)) return normalized.slice(0, 16);
+    // Fallback: try Date parsing and format as local
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "";
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const mm = pad2(d.getMonth() + 1);
+    const dd = pad2(d.getDate());
+    const hh = pad2(d.getHours());
+    const mi = pad2(d.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  };
+
   const renderFilesList = (type) => {
     const items = Array.isArray(project?.files?.[type]) ? project.files[type] : [];
     return (
@@ -354,80 +373,80 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Install Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="install_date"
-                value={form.install_date || ""}
+                value={formatForInput(form.install_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Install End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="install_end_date"
-                value={form.install_end_date || ""}
+                value={formatForInput(form.install_end_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Production Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="production_date"
-                value={form.production_date || ""}
+                value={formatForInput(form.production_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Production End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="production_end_date"
-                value={form.production_end_date || ""}
+                value={formatForInput(form.production_end_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Event Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="event_date"
-                value={form.event_date || ""}
+                value={formatForInput(form.event_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Event End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="event_end_date"
-                value={form.event_end_date || ""}
+                value={formatForInput(form.event_end_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Disassembly Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="remove_date"
-                value={form.remove_date || ""}
+                value={formatForInput(form.remove_date)}
                 onChange={handleChange}
               />
             </div>
             <div className="form-field">
               <label className="form-label">Disassembly End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="remove_end_date"
-                value={form.remove_end_date || ""}
+                value={formatForInput(form.remove_end_date)}
                 onChange={handleChange}
               />
             </div>

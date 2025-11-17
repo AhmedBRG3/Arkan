@@ -10,9 +10,13 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     job_no: "",
     status: "new",
     install_date: "",
+    install_end_date: "",
     production_date: "",
+    production_end_date: "",
     event_date: "",
-    disassembly_date: "",
+    event_end_date: "",
+    remove_date: "",
+    remove_end_date: "",
   });
   const [files, setFiles] = useState({
     "3d": null,
@@ -43,9 +47,13 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
       job_no: "",
       status: "new",
       install_date: "",
+      install_end_date: "",
       production_date: "",
+      production_end_date: "",
       event_date: "",
-      disassembly_date: "",
+      event_end_date: "",
+      remove_date: "",
+      remove_end_date: "",
     });
     setFiles({
       "3d": null,
@@ -78,7 +86,10 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
 
   const upsertDates = async (projectId) => {
     const hasAny =
-      form.install_date || form.production_date || form.event_date || form.disassembly_date;
+      form.install_date || form.install_end_date ||
+      form.production_date || form.production_end_date ||
+      form.event_date || form.event_end_date ||
+      form.remove_date || form.remove_end_date;
     if (!hasAny) return;
     const res = await fetch("https://arkanaltafawuq.com/arkan-system/projects_dates_upsert.php", {
       method: "POST",
@@ -86,9 +97,13 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
       body: JSON.stringify({
         project_id: projectId,
         install_date: form.install_date || null,
+        install_end_date: form.install_end_date || null,
         production_date: form.production_date || null,
+        production_end_date: form.production_end_date || null,
         event_date: form.event_date || null,
-        disassembly_date: form.disassembly_date || null,
+        event_end_date: form.event_end_date || null,
+        remove_date: form.remove_date || null,
+        remove_end_date: form.remove_end_date || null,
       }),
     });
     const data = await res.json();
@@ -292,7 +307,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Install Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="install_date"
                 value={form.install_date || ""}
@@ -302,7 +317,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Install End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="install_end_date"
                 value={form.install_end_date || ""}
@@ -312,7 +327,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Production Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="production_date"
                 value={form.production_date || ""}
@@ -322,7 +337,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Production End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="production_end_date"
                 value={form.production_end_date || ""}
@@ -332,7 +347,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Event Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="event_date"
                 value={form.event_date || ""}
@@ -342,7 +357,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Event End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="event_end_date"
                 value={form.event_end_date || ""}
@@ -352,7 +367,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Disassembly Start Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="remove_date"
                 value={form.remove_date || ""}
@@ -362,7 +377,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
             <div className="form-field">
               <label className="form-label">Disassembly End Date</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-input"
                 name="remove_end_date"
                 value={form.remove_end_date || ""}
