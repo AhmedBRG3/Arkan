@@ -5,6 +5,7 @@ import { COUNTRIES_STATES } from "../static/countries";
 
 const CreateOrderPage = ({ isSidebarOpen }) => {
   const [form, setForm] = useState({
+    company_name: "",
     name: "",
     Response_name: "",
     job_no: "",
@@ -42,6 +43,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
 
   const resetForm = () => {
     setForm({
+      company_name: "",
       name: "",
       Response_name: "",
       job_no: "",
@@ -73,10 +75,12 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
+        company_name: form.company_name,
         name: form.name,
         Response_name: form.Response_name,
         job_no: form.job_no,
         status: form.status || "new",
+        note: form.notes || "",
       }),
     });
     const data = await res.json();
@@ -186,6 +190,17 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
       {success && <div className="success-message">{success}</div>}
 
       <form className="form-group" onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label className="form-label">Company Name</label>
+          <input
+            type="text"
+            name="company_name"
+            value={form.company_name}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="Company name"
+          />
+        </div>
         <div className="form-field">
           <label className="form-label">Project Name</label>
           <input
@@ -365,7 +380,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
               />
             </div>
             <div className="form-field">
-              <label className="form-label">Disassembly Start Date</label>
+              <label className="form-label">OFF Start Date</label>
               <input
                 type="datetime-local"
                 className="form-input"
@@ -375,7 +390,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
               />
             </div>
             <div className="form-field">
-              <label className="form-label">Disassembly End Date</label>
+              <label className="form-label">OFF End Date</label>
               <input
                 type="datetime-local"
                 className="form-input"

@@ -18,6 +18,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
   const [success, setSuccess] = useState("");
   const [project, setProject] = useState(null);
   const [form, setForm] = useState({
+    company_name: "",
     name: "",
     Response_name: "",
     job_no: "",
@@ -49,6 +50,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
       if (!data?.success) throw new Error(data?.message || "Failed to load");
       setProject(data.project);
       setForm({
+        company_name: data.project.company_name || "", 
         name: data.project.name || "",
         Response_name: data.project.Response_name || "",
         job_no: data.project.job_no || "",
@@ -104,6 +106,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({
             id: Number(id),
+            company_name: effective.company_name,
             name: effective.name,
             Response_name: effective.Response_name,
             job_no: effective.job_no,
@@ -276,9 +279,14 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
       ) : (
         <>
           <div className="form-group">
+    
             <div className="form-field">
-              <label className="form-label">Name</label>
+              <label className="form-label">Project Name</label>
               <input className="form-input" name="name" value={form.name} onChange={handleChange} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Company Name</label>
+              <input className="form-input" name="company_name" value={form.company_name} onChange={handleChange} />
             </div>
             <div className="form-field">
               <label className="form-label">Responsible</label>
@@ -431,7 +439,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
               />
             </div>
             <div className="form-field">
-              <label className="form-label">Disassembly Start Date</label>
+              <label className="form-label">OFF Start Date</label>
               <input
                 type="datetime-local"
                 className="form-input"
@@ -441,7 +449,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
               />
             </div>
             <div className="form-field">
-              <label className="form-label">Disassembly End Date</label>
+              <label className="form-label">OFF End Date</label>
               <input
                 type="datetime-local"
                 className="form-input"

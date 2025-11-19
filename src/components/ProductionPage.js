@@ -502,18 +502,30 @@ const ProductionPage = ({ isSidebarOpen }) => {
       )}
 
       {modalProject && (
-        <div className="modal" role="dialog" aria-modal="true" onClick={closeFiles}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            {modalProject.showNotesOnly ? (
-              <>
-                <h3 className="modal-title">Notes - {modalProject.name}</h3>
-                <div style={{ whiteSpace: "pre-wrap", padding: "8px 0", color: "#333" }}>
-                  {modalProject.notes || "-"}
-                </div>
-                <div className="modal-buttons">
-                  <button onClick={closeFiles} className="form-button cancel-button">
-                    Close
-                  </button>
+          <div className="modal" role="dialog" aria-modal="true" onClick={closeFiles}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                {modalProject.showNotesOnly ? (
+                  <>
+                    <h3 className="modal-title">Notes - {modalProject.name}</h3>
+                    <div
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #e1e6eb",
+                        borderRadius: 10,
+                        padding: "18px 20px",
+                        margin: "18px 0",
+                        boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+                        color: "#333",
+                        whiteSpace: "pre-wrap",
+                        fontSize: 15,
+                      }}
+                    >
+                      {modalProject.notes || "-"}
+                    </div>
+                    <div className="modal-buttons">
+                      <button onClick={closeFiles} className="form-button cancel-button">
+                        Close
+                      </button>
                 </div>
               </>
             ) : (

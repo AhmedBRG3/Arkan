@@ -351,7 +351,9 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
           <table className="order-table" style={{overflowX: "auto", whiteSpace: "nowrap" }}>
             <thead>
               <tr>
+                <th>Created At</th>
                 <th>ID</th>
+                <th>Company Name</th>
                 <th>Name</th>
                 <th>Contact</th>
                 <th>Job No</th>
@@ -367,14 +369,16 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                 <th>Brief</th>
                 <th>Quotation</th>
                 <th>Photos</th>
-                <th>Invoice</th>
+                <th>Invoice</th>  
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredProjects.map((p) => (
                 <tr key={p.id}>
+                  <td className="table-cell">{p.created_at || "-"}</td>
                   <td className="table-cell">{p.id}</td>
+                  <td className="table-cell">{p.company_name || "-"}</td>
                   <td className="table-cell">{p.name}</td>
                   <td className="table-cell">{p.Response_name || "-"}</td>
                   <td className="table-cell">{p.job_no || "-"}</td>
@@ -506,7 +510,19 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
             {modalProject.showNotesOnly ? (
               <>
                 <h3 className="modal-title">Notes - {modalProject.name}</h3>
-                <div style={{ whiteSpace: "pre-wrap", padding: "8px 0", color: "#333" }}>
+                <div
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #e1e6eb",
+                    borderRadius: 10,
+                    padding: "18px 20px",
+                    margin: "18px 0",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+                    color: "#333",
+                    whiteSpace: "pre-wrap",
+                    fontSize: 15,
+                  }}
+                >
                   {modalProject.notes || "-"}
                 </div>
                 <div className="modal-buttons">
