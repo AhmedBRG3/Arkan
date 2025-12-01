@@ -30,6 +30,9 @@ import ExcelImportPage from "./components/ExcelImportPage";
 import ProductionPage from "./components/ProductionPage";
 import ProjectEditPage from "./components/ProjectEditPage";
 import AccountmanagerPage from "./components/AccountmanagerPage";
+import OperationEditPage from "./components/OperationEditPage";
+import ProductionPoEditPage from "./components/ProductionPoEditPage";
+// import ProductionMaterialsEditPage from "./components/ProductionMaterialsEditPage";
 const LayoutWithSidebar = ({ children }) => {
   const location = useLocation();
   const showSidebar = location.pathname !== "/Login";
@@ -99,6 +102,30 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/operationedit/:id"
+            element={
+              <ProtectedRoute>
+                <OperationEditPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/production_po_edit/:id"
+            element={
+              <ProtectedRoute>
+                <ProductionPoEditPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* <Route
+            path="/production_materials_edit/:id"
+            element={
+              <ProtectedRoute>
+                <ProductionMaterialsEditPage />
+              </ProtectedRoute>
+            }
+          /> */}
           <Route
             path="/finance"
             element={

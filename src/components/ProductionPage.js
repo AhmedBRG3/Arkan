@@ -31,7 +31,10 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalProject, setModalProject] = useState(null);
+  const [prodSummary, setProdSummary] = useState({}); // project_id -> summary
   const [showFilters, setShowFilters] = useState(false);
+  const [compactProd, setCompactProd] = useState(true); // merge PO+Materials into one column
+  const [compactDates, setCompactDates] = useState(true); // merge Install/Production/Event/Off into one column
   const [filters, setFilters] = useState({
     name: "",
     contact: "",
@@ -76,8 +79,31 @@ const ProductionPage = ({ isSidebarOpen }) => {
     }
   };
 
+  // Fetch production summaries and map by project_id
+  const fetchProductionSummary = async () => {
+    try {
+      const res = await fetch(api("production_get_summary.php"), { credentials: "include" });
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.items)) {
+        const map = {};
+        data.items.forEach((it) => { map[it.project_id] = it; });
+        setProdSummary(map);
+      } else {
+        setProdSummary({});
+      }
+    } catch (e) {
+      console.error(e);
+      setProdSummary({});
+    }
+  };
+
+  const fetchAll = async () => {
+    await Promise.all([fetchProjects(), fetchProductionSummary()]);
+  };
+
   useEffect(() => {
-    fetchProjects();
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const countFiles = (project, type) => {
@@ -87,6 +113,35 @@ const ProductionPage = ({ isSidebarOpen }) => {
 
   const openFiles = (project) => setModalProject(project);
   const closeFiles = () => setModalProject(null);
+  const role = typeof window !== "undefined" ? (localStorage.getItem("role") || "") : "";
+
+  // no inline editor anymore; moved to standalone page
+
+  // Open Materials modal and fetch full materials text
+  const openMaterials = async (project) => {
+    setModalProject({
+      ...project,
+      showMaterialsOnly: true,
+      materialsLoading: true,
+      materialsText: { available: "", unavailable: "" },
+    });
+    try {
+      const res = await fetch(api(`production_get_detail.php?project_id=${project.id}`), { credentials: "include" });
+      const data = await res.json();
+      const mt = data?.materials_text || null;
+      const available = mt?.available_material || "";
+      const unavailable = mt?.unavailable_material || "";
+      setModalProject((prev) => {
+        if (!prev || prev.id !== project.id || !prev.showMaterialsOnly) return prev;
+        return { ...prev, materialsLoading: false, materialsText: { available, unavailable } };
+      });
+    } catch (e) {
+      setModalProject((prev) => {
+        if (!prev || prev.id !== project.id || !prev.showMaterialsOnly) return prev;
+        return { ...prev, materialsLoading: false, materialsText: { available: "", unavailable: "" } };
+      });
+    }
+  };
 
   const handleFilterChange = (e) => {
     const { name, type, value, checked } = e.target;
@@ -167,12 +222,12 @@ const ProductionPage = ({ isSidebarOpen }) => {
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Production - Projects</h2>
+      <h2 className="order-title">Operation - Projects</h2>
 
       {error && <div className="error-message">❌ {error}</div>}
 
       <div className="status-buttons">
-        <button onClick={fetchProjects} className="form-button refresh-button">
+        <button onClick={fetchAll} className="form-button refresh-button">
           <span className="button-icon">🔄</span> Refresh
         </button>
         <button onClick={() => setShowFilters(true)} className="form-button submit-button">
@@ -341,6 +396,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
         </div>
       )}
 
+      {/* production inline editor removed; see ProductionPoEditPage */}
+
       {loading ? (
         <div className="loading">
           <span className="spinner"></span> Loading...
@@ -352,16 +409,71 @@ const ProductionPage = ({ isSidebarOpen }) => {
           <table className="order-table" style={{overflowX: "auto", whiteSpace: "nowrap" }}>
             <thead>
               <tr>
+                <th>Created At</th>
                 <th>ID</th>
-                <th>Name</th>
+                <th>Company Name</th>
+                <th>Project Name</th>
                 <th>Contact</th>
                 <th>Job No</th>
                 <th>Location</th>
                 <th>Status</th>
-                <th>Install</th>
-                <th>Production</th>
-                <th>Event</th>
-                <th>Off</th>
+                {compactProd ? (
+                  <>
+                    <th
+                      style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}
+                      onClick={() => setCompactProd(false)}
+                      title="Expand columns"
+                    >
+                      PO & Materials <span style={{ marginLeft: 6 }}>▾</span>
+                    </th>
+                    <th>Warehouse Entry</th>
+                  </>
+                ) : (
+                  <>
+                    <th
+                      style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}
+                      onClick={() => setCompactProd(true)}
+                      title="Compact columns"
+                    >
+                      PO No <span style={{ marginLeft: 6 }}>▸</span>
+                    </th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
+                      color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>PO Dates</th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
+                      color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Warehouse Entry</th>
+                    
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
+                      color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Available Mat</th>
+                    <th                      style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}
+                    >Unavailable Mat</th>
+                  </>
+                )}
+                {compactDates ? (
+                  <th
+                    style={{ cursor: "pointer", userSelect: "none", background: "rgba(111,66,193,0.10)", color: "#4a148c", padding: "4px 6px", borderRadius: 8 }}
+                    onClick={() => setCompactDates(false)}
+                    title="Expand date columns"
+                  >
+                    Dates <span style={{ marginLeft: 6 }}>▾</span>
+                  </th>
+                ) : (
+                  <>
+                    <th
+                    style={{ cursor: "pointer", userSelect: "none", background: "rgba(111,66,193,0.10)", color: "#4a148c", padding: "4px 6px", borderRadius: 8 }}
+                    onClick={() => setCompactDates(true)}
+                      title="Compact date columns"
+                    >
+                      Install <span style={{ marginLeft: 6 }}>▸</span>
+                    </th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(111,66,193,0.10)", 
+                      color: "#4a148c", padding: "4px 6px", borderRadius: 8 }}>Production</th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(111,66,193,0.10)",
+                       color: "#4a148c", padding: "4px 6px", borderRadius: 8 }} >Event</th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(111,66,193,0.10)",
+                       color: "#4a148c", padding: "4px 6px", borderRadius: 8 }} >Off</th>
+                    
+                  </>
+                )}
                 <th>Notes</th>
                 {/* <th>3D</th>
                 <th>Prova</th>
@@ -375,7 +487,9 @@ const ProductionPage = ({ isSidebarOpen }) => {
             <tbody>
               {filteredProjects.map((p) => (
                 <tr key={p.id}>
+                  <td className="table-cell">{p.created_at || "-"}</td>
                   <td className="table-cell">{p.id}</td>
+                  <td className="table-cell">{p.company_name || "-"}</td>
                   <td className="table-cell">{p.name}</td>
                   <td className="table-cell">{p.Response_name || "-"}</td>
                   <td className="table-cell">{p.job_no || "-"}</td>
@@ -385,66 +499,206 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     </div>
                   </td>
                   <td className="table-cell">{p.status || "-"}</td>
-                  <td className="table-cell">
-                    {p?.dates?.install_date ? (
-                      <div>
-                        <div>{p?.dates?.install_date}</div>
-                        {p?.dates?.install_end_date && (
-                          <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.install_end_date}</div>
+                  {(() => {
+                    const s = prodSummary[p.id] || {};
+                    const po = s?.po || {};
+                    const names = Array.isArray(s?.materials_preview) ? s.materials_preview.map((m) => m.material).filter(Boolean) : [];
+                    const firstTwo = names.slice(0, 2);
+                    const titleText = names.join(", ");
+                    const mt = s?.materials_text_preview || null;
+                    const availableText = mt ? (mt.available_preview || "-") : (firstTwo.length ? firstTwo.join(", ") : "-");
+                    const unavailableText = mt ? (mt.unavailable_preview || "-") : "-";
+                    if (compactProd) {
+                      const summaryParts = [
+                        po?.po_no ? `PO: ${po.po_no}` : "PO: -",
+                        po?.po_s_date ? (po?.po_exp_date ? `${po.po_s_date}→${po.po_exp_date}` : po.po_s_date) : "-",
+                        availableText && availableText !== "-" ? `Av: ${availableText}` : "Av: -",
+                        unavailableText && unavailableText !== "-" ? `Un: ${unavailableText}` : "Un: -",
+                      ];
+                      const summaryText = summaryParts.join(" | ");
+                      return (
+                        <>
+                          <td
+                            className="table-cell"
+                            title={summaryText}
+                            style={{
+                              width: 360,
+                              maxWidth: 360,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              cursor: "pointer",
+                              textDecoration: "underline dotted",
+                              background: "rgba(25,118,210,0.10)",
+                              color: "#0d47a1",
+                              padding: "6px 8px",
+                              borderRadius: 8,
+                            }}
+                            onClick={() => setCompactProd(false)}
+                          >
+                            {summaryText}
+                          </td>
+                          <td className="table-cell">{po?.warehouse_entry_date || "-"}</td>
                         </>
-                      )}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="table-cell">
-                    {p?.dates?.production_date ? (
-                      <div>
-                        <div>{p?.dates?.production_date}</div>
-                        {p?.dates?.production_end_date && (
-                          <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.production_end_date}</div>
-                          </>
+                      );
+                    }
+                    // Expanded columns view
+                    return (
+                      <>
+                        <td className="table-cell">{po?.po_no || "-"}</td>
+                        <td className="table-cell">
+                          {po?.po_s_date ? (
+                            <div>
+                              <div>{po?.po_s_date}</div>
+                              {po?.po_exp_date && (
+                                <>
+                                  <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                                  <div>{po?.po_exp_date}</div>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="table-cell">{po?.warehouse_entry_date || "-"}</td>
+                        <td
+                          className="table-cell"
+                          title={titleText}
+                          style={{
+                            width: 200,
+                            maxWidth: 200,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            cursor: availableText && availableText !== "-" ? "pointer" : "default",
+                            textDecoration: availableText && availableText !== "-" ? "underline dotted" : "none",
+                          }}
+                          onClick={() => {
+                            if (availableText && availableText !== "-") openMaterials(p);
+                          }}
+                        >
+                          {availableText}
+                        </td>
+                        <td
+                          className="table-cell"
+                          title={unavailableText}
+                          style={{
+                            width: 200,
+                            maxWidth: 200,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            cursor: unavailableText && unavailableText !== "-" ? "pointer" : "default",
+                            textDecoration: unavailableText && unavailableText !== "-" ? "underline dotted" : "none",
+                          }}
+                          onClick={() => {
+                            if (unavailableText && unavailableText !== "-") openMaterials(p);
+                          }}
+                        >
+                          {unavailableText}
+                        </td>
+                      </>
+                    );
+                  })()}
+                  {compactDates ? (
+                    (() => {
+                      const d = p?.dates || {};
+                      const fmt = (s, e) => (s ? (e ? `${s}→${e}` : s) : "-");
+                      const parts = [
+                        `I: ${fmt(d.install_date, d.install_end_date)}`,
+                        `P: ${fmt(d.production_date, d.production_end_date)}`,
+                        `E: ${fmt(d.event_date, d.event_end_date)}`,
+                        `Off: ${fmt(d.remove_date, d.remove_end_date)}`,
+                      ];
+                      const text = parts.join(" | ");
+                      return (
+                        <td
+                          className="table-cell"
+                          title={text}
+                          style={{
+                            width: 420,
+                            maxWidth: 420,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            cursor: "pointer",
+                            textDecoration: "underline dotted",
+                            background: "rgba(111,66,193,0.10)",
+                            color: "#4a148c",
+                            padding: "6px 8px",
+                            borderRadius: 8,
+                          }}
+                          onClick={() => setCompactDates(false)}
+                        >
+                          {text}
+                        </td>
+                      );
+                    })()
+                  ) : (
+                    <>
+                      <td className="table-cell">
+                        {p?.dates?.install_date ? (
+                          <div>
+                            <div>{p?.dates?.install_date}</div>
+                            {p?.dates?.install_end_date && (
+                              <>
+                                <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                                <div>{p?.dates?.install_end_date}</div>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          "-"
                         )}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="table-cell">
-                    {p?.dates?.event_date ? (
-                      <div>
-                        <div>{p?.dates?.event_date}</div>
-                        {p?.dates?.event_end_date && (
-                          <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.event_end_date}</div>
-                          </>
+                      </td>
+                      <td className="table-cell">
+                        {p?.dates?.production_date ? (
+                          <div>
+                            <div>{p?.dates?.production_date}</div>
+                            {p?.dates?.production_end_date && (
+                              <>
+                                <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                                <div>{p?.dates?.production_end_date}</div>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          "-"
                         )}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="table-cell">
-                    {p?.dates?.remove_date ? (
-                      <div>
-                        <div>{p?.dates?.remove_date}</div>
-                        {p?.dates?.remove_end_date && (
-                          <>
-                          <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                          <div>{p?.dates?.remove_end_date}</div>
-                          </>
+                      </td>
+                      <td className="table-cell">
+                        {p?.dates?.event_date ? (
+                          <div>
+                            <div>{p?.dates?.event_date}</div>
+                            {p?.dates?.event_end_date && (
+                              <>
+                                <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                                <div>{p?.dates?.event_end_date}</div>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          "-"
                         )}
-                      </div> 
-                    ) : (
-                      "-"
-                    )}
-                  </td>
+                      </td>
+                      <td className="table-cell">
+                        {p?.dates?.remove_date ? (
+                          <div>
+                            <div>{p?.dates?.remove_date}</div>
+                            {p?.dates?.remove_end_date && (
+                              <>
+                                <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
+                                <div>{p?.dates?.remove_end_date}</div>
+                              </>
+                            )}
+                          </div> 
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    </>
+                  )}
                   <td
                     className="table-cell"
                     style={{ cursor: p.notes ? "pointer" : "default", textDecoration: p.notes ? "underline dotted" : "none" }}
@@ -483,12 +737,23 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       >
                         📂
                       </span>
+                      {(role === "admin" || role === "production") && (
+                        <a
+                          href={`/arkann/production_po_edit/${p.id}`}
+                          className="icon-button"
+                          style={{ padding: 4, fontSize: 15 }}
+                          title="Edit Production"
+                          aria-label="Edit Production"
+                        >
+                          🛠️
+                        </a>
+                      )}
                       <a
-                        href={`/arkann/project/${p.id}/edit`}
+                        href={`/arkann/operationedit/${p.id}`}
                         className="icon-button"
                         style={{ padding: 4, fontSize: 15 }}
-                        title="Edit Project"
-                        aria-label="Edit Project"
+                        title="Edit Operation"
+                        aria-label="Edit Operation"
                       >
                         ✏️
                       </a>
@@ -504,7 +769,56 @@ const ProductionPage = ({ isSidebarOpen }) => {
       {modalProject && (
           <div className="modal" role="dialog" aria-modal="true" onClick={closeFiles}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                {modalProject.showNotesOnly ? (
+                {modalProject.showMaterialsOnly ? (
+                  <>
+                    <h3 className="modal-title">Materials - {modalProject.name}</h3>
+                    {modalProject.materialsLoading ? (
+                      <div className="loading">
+                        <span className="spinner"></span> Loading...
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            background: "#fff",
+                            border: "1px solid #e1e6eb",
+                            borderRadius: 10,
+                            padding: "18px 20px",
+                            margin: "18px 0",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+                            color: "#333",
+                            whiteSpace: "pre-wrap",
+                            fontSize: 15,
+                          }}
+                        >
+                          <strong style={{ display: "block", marginBottom: 6 }}>Available</strong>
+                          {modalProject.materialsText?.available || "-"}
+                        </div>
+                        <div
+                          style={{
+                            background: "#fff",
+                            border: "1px solid #e1e6eb",
+                            borderRadius: 10,
+                            padding: "18px 20px",
+                            margin: "18px 0",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+                            color: "#333",
+                            whiteSpace: "pre-wrap",
+                            fontSize: 15,
+                          }}
+                        >
+                          <strong style={{ display: "block", marginBottom: 6 }}>Unavailable</strong>
+                          {modalProject.materialsText?.unavailable || "-"}
+                        </div>
+                      </>
+                    )}
+                    <div className="modal-buttons">
+                      <button onClick={closeFiles} className="form-button cancel-button">
+                        Close
+                      </button>
+                    </div>
+                  </>
+                ) : modalProject.showNotesOnly ? (
                   <>
                     <h3 className="modal-title">Notes - {modalProject.name}</h3>
                     <div
