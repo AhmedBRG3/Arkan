@@ -40,6 +40,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
     contact: "",
     job: "",
     status: "",
+    productionStatus: "",
     location: "", // this now refers to country
     installFrom: "",
     installTo: "",
@@ -57,6 +58,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
     noPhotos: false,
     noInvoice: false,
   });
+  const [statusMap, setStatusMap] = useState({});
 
   const fetchProjects = async () => {
     try {
@@ -87,6 +89,27 @@ const ProductionPage = ({ isSidebarOpen }) => {
       if (data?.success && Array.isArray(data.items)) {
         const map = {};
         data.items.forEach((it) => { map[it.project_id] = it; });
+        // Enrich missing prod_status by fetching detail if summary doesn't include it
+        const missing = data.items.filter((it) => {
+          const po = it?.po || {};
+          return !po || (!po.prod_status && !po.po_status);
+        });
+        if (missing.length > 0) {
+          await Promise.all(
+            missing.map(async (it) => {
+              try {
+                const r = await fetch(api(`production_get_detail.php?project_id=${it.project_id}`), { credentials: "include" });
+                const dj = await r.json();
+                const p = dj?.po || {};
+                const st = p.prod_status || p.po_status || "";
+                if (!map[it.project_id].po) map[it.project_id].po = {};
+                map[it.project_id].po.prod_status = st;
+              } catch (_e) {
+                // ignore per-item error
+              }
+            })
+          );
+        }
         setProdSummary(map);
       } else {
         setProdSummary({});
@@ -99,10 +122,30 @@ const ProductionPage = ({ isSidebarOpen }) => {
 
   const fetchAll = async () => {
     await Promise.all([fetchProjects(), fetchProductionSummary()]);
+    // also refresh local statuses
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("poStatusMap");
+        const map = raw ? JSON.parse(raw) : {};
+        setStatusMap(map);
+      }
+    } catch (_e) {
+      setStatusMap({});
+    }
   };
 
   useEffect(() => {
     fetchAll();
+    // initial load of local status map in case network calls are cached
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("poStatusMap");
+        const map = raw ? JSON.parse(raw) : {};
+        setStatusMap(map);
+      }
+    } catch (_e) {
+      setStatusMap({});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,6 +159,34 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const role = typeof window !== "undefined" ? (localStorage.getItem("role") || "") : "";
 
   // no inline editor anymore; moved to standalone page
+  const normalizeStatus = (s) => {
+    const v = (s || "").toString().trim().toLowerCase();
+    const collapsed = v.replace(/\s+/g, "");
+    if (collapsed === "done") return "done";
+    if (collapsed === "inprocess" || collapsed === "inprogress" || collapsed === "inproccess") return "inprocess";
+    return "none";
+  };
+
+  const getStatusStyles = (status, base) => {
+    const ns = normalizeStatus(status);
+    const style = { ...(base || {}) };
+    if (ns === "done") {
+      style.background = "rgba(76,175,80,0.15)";
+      style.color = "#1b5e20";
+    } else if (ns === "inprocess") {
+      style.background = "rgba(255,193,7,0.20)";
+      style.color = "#8a6d3b";
+    }
+    if (!style.borderRadius) style.borderRadius = 8;
+    if (!style.padding) style.padding = "6px 8px";
+    return style;
+  };
+  const getRowBackground = (status) => {
+    const ns = normalizeStatus(status);
+    if (ns === "done") return "rgba(76,175,80,0.10)";
+    if (ns === "inprocess") return "rgba(255,193,7,0.12)";
+    return "transparent";
+  };
 
   // Open Materials modal and fetch full materials text
   const openMaterials = async (project) => {
@@ -192,6 +263,13 @@ const ProductionPage = ({ isSidebarOpen }) => {
     if (filters.contact && !(p.Response_name || "").toLowerCase().includes(filters.contact.toLowerCase())) return false;
     if (filters.job && !(p.job_no || "").toLowerCase().includes(filters.job.toLowerCase())) return false;
     if (filters.status && !(p.status || "").toLowerCase().includes(filters.status.toLowerCase())) return false;
+    if (filters.productionStatus) {
+      const s = prodSummary[p.id] || {};
+      const po = s?.po || {};
+      const combined = po?.prod_status || po?.po_status || statusMap?.[String(p.id)] || "none";
+      const normalized = normalizeStatus(combined);
+      if (normalized !== filters.productionStatus) return false;
+    }
     if (filters.location) {
       // If location filter (country) is applied, match strictly on project location's country field or string value
       const country = getCountryValueFromProject(p).toLowerCase();
@@ -205,18 +283,6 @@ const ProductionPage = ({ isSidebarOpen }) => {
     if (!rangesOverlap(d.event_date, d.event_end_date, filters.eventFrom, filters.eventTo)) return false;
     if (!rangesOverlap(d.remove_date, d.remove_end_date, filters.disassemblyFrom, filters.disassemblyTo)) return false;
 
-    // no files filters
-    // if (filters.noFilesOnly) {
-    //   const types = ["3d", "prova", "brief", "quotation", "photos", "invoice"];
-    //   const anyFiles = types.some((t) => countFiles(p, t) > 0);
-    //   if (anyFiles) return false;
-    // }
-    // if (filters.no3d && countFiles(p, "3d") > 0) return false;
-    // if (filters.noProva && countFiles(p, "prova") > 0) return false;
-    // if (filters.noBrief && countFiles(p, "brief") > 0) return false;
-    // if (filters.noQuotation && countFiles(p, "quotation") > 0) return false;
-    // if (filters.noPhotos && countFiles(p, "photos") > 0) return false;
-    // if (filters.noInvoice && countFiles(p, "invoice") > 0) return false;
     return true;
   });
 
@@ -238,12 +304,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
         <div className="modal" role="dialog" aria-modal="true" onClick={() => setShowFilters(false)}>
           <div
             className="modal-content production-filters-modal"
-            style={{ maxWidth: 1000, margin: "2rem auto", borderRadius: 10 }}
+            style={{ maxWidth: 1200, margin: "2rem auto", borderRadius: 10 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <h3 className="modal-title" style={{ margin: 0 }}>Filters</h3>
-              <button className="form-button cancel-button" onClick={() => setShowFilters(false)}>Close</button>
             </div>
             <div style={{ display: "flex", flexDirection: "row" }}>
               <div style={{ flex: 2, marginRight: 24 }}>
@@ -263,7 +328,32 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   </div>
                   <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
                     <label className="form-label">Status</label>
-                    <input className="form-input" name="status" value={filters.status} onChange={handleFilterChange} placeholder="Search status" />
+                    <select
+                      className="form-input"
+                      name="status"
+                      value={filters.status}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All</option>
+                      <option value="pending">Pending</option>
+                      <option value="inprogress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div className="form-field" style={{ flex: 1, minWidth: 140 }}>
+                    <label className="form-label">Production Status</label>
+                    <select
+                      className="form-input"
+                      name="productionStatus"
+                      value={filters.productionStatus}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All</option>
+                      <option value="none">None</option>
+                      <option value="inprocess">In process</option>
+                      <option value="done">Done</option>
+                    </select>
                   </div>
                   <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
                     <label className="form-label">Location</label>
@@ -320,37 +410,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 240, borderLeft: "1px solid #eee", paddingLeft: 24 }}>
-                <h4 style={{ marginBottom: 10 }}>Files Filters</h4>
-                {/* <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label className="form-label" style={{ fontWeight: 500 }}>
-                    <input type="checkbox" name="noFilesOnly" checked={filters.noFilesOnly} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    Only no files uploaded
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="no3d" checked={filters.no3d} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No 3D
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="noProva" checked={filters.noProva} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No Prova
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="noBrief" checked={filters.noBrief} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No Brief
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="noQuotation" checked={filters.noQuotation} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No Quotation
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="noPhotos" checked={filters.noPhotos} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No Photos
-                  </label>
-                  <label className="form-label">
-                    <input type="checkbox" name="noInvoice" checked={filters.noInvoice} onChange={handleFilterChange} style={{ marginRight: 7 }} />
-                    No Invoice
-                  </label>
-                </div> */}
+               
                 <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
                   <button
                     className="form-button reset-button"
@@ -361,6 +421,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         contact: "",
                         job: "",
                         status: "",
+                        productionStatus: "",
                         location: "",
                         installFrom: "",
                         installTo: "",
@@ -395,8 +456,6 @@ const ProductionPage = ({ isSidebarOpen }) => {
           </div>
         </div>
       )}
-
-      {/* production inline editor removed; see ProductionPoEditPage */}
 
       {loading ? (
         <div className="loading">
@@ -475,18 +534,17 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   </>
                 )}
                 <th>Notes</th>
-                {/* <th>3D</th>
-                <th>Prova</th>
-                <th>Brief</th>
-                <th>Quotation</th>
-                <th>Photos</th>
-                <th>Invoice</th> */}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProjects.map((p) => (
-                <tr key={p.id}>
+              {filteredProjects.map((p) => {
+                const s = prodSummary[p.id] || {};
+                const po = s?.po || {};
+                const rowStatus = normalizeStatus(po?.prod_status || po?.po_status || statusMap?.[String(p.id)] || "none");
+                const rowStyle = { background: getRowBackground(rowStatus) };
+                return (
+                <tr key={p.id} style={rowStyle}>
                   <td className="table-cell">{p.created_at || "-"}</td>
                   <td className="table-cell">{p.id}</td>
                   <td className="table-cell">{p.company_name || "-"}</td>
@@ -502,6 +560,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   {(() => {
                     const s = prodSummary[p.id] || {};
                     const po = s?.po || {};
+                    const poStatus = normalizeStatus((po?.prod_status || po?.po_status || statusMap?.[String(p.id)] || "none"));
                     const names = Array.isArray(s?.materials_preview) ? s.materials_preview.map((m) => m.material).filter(Boolean) : [];
                     const firstTwo = names.slice(0, 2);
                     const titleText = names.join(", ");
@@ -521,7 +580,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                           <td
                             className="table-cell"
                             title={summaryText}
-                            style={{
+                            style={getStatusStyles(poStatus, {
                               width: 360,
                               maxWidth: 360,
                               whiteSpace: "nowrap",
@@ -533,20 +592,33 @@ const ProductionPage = ({ isSidebarOpen }) => {
                               color: "#0d47a1",
                               padding: "6px 8px",
                               borderRadius: 8,
-                            }}
+                            })}
                             onClick={() => setCompactProd(false)}
                           >
                             {summaryText}
                           </td>
-                          <td className="table-cell">{po?.warehouse_entry_date || "-"}</td>
+                          <td
+                            className="table-cell"
+                            style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                          >
+                            {po?.warehouse_entry_date || "-"}
+                          </td>
                         </>
                       );
                     }
                     // Expanded columns view
                     return (
                       <>
-                        <td className="table-cell">{po?.po_no || "-"}</td>
-                        <td className="table-cell">
+                        <td
+                          className="table-cell"
+                          style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                        >
+                          {po?.po_no || "-"}
+                        </td>
+                        <td
+                          className="table-cell"
+                          style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                        >
                           {po?.po_s_date ? (
                             <div>
                               <div>{po?.po_s_date}</div>
@@ -561,11 +633,16 @@ const ProductionPage = ({ isSidebarOpen }) => {
                             "-"
                           )}
                         </td>
-                        <td className="table-cell">{po?.warehouse_entry_date || "-"}</td>
+                        <td
+                          className="table-cell"
+                          style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                        >
+                          {po?.warehouse_entry_date || "-"}
+                        </td>
                         <td
                           className="table-cell"
                           title={titleText}
-                          style={{
+                          style={getStatusStyles(poStatus, {
                             width: 200,
                             maxWidth: 200,
                             whiteSpace: "nowrap",
@@ -573,7 +650,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                             textOverflow: "ellipsis",
                             cursor: availableText && availableText !== "-" ? "pointer" : "default",
                             textDecoration: availableText && availableText !== "-" ? "underline dotted" : "none",
-                          }}
+                          })}
                           onClick={() => {
                             if (availableText && availableText !== "-") openMaterials(p);
                           }}
@@ -583,7 +660,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         <td
                           className="table-cell"
                           title={unavailableText}
-                          style={{
+                          style={getStatusStyles(poStatus, {
                             width: 200,
                             maxWidth: 200,
                             whiteSpace: "nowrap",
@@ -591,7 +668,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                             textOverflow: "ellipsis",
                             cursor: unavailableText && unavailableText !== "-" ? "pointer" : "default",
                             textDecoration: unavailableText && unavailableText !== "-" ? "underline dotted" : "none",
-                          }}
+                          })}
                           onClick={() => {
                             if (unavailableText && unavailableText !== "-") openMaterials(p);
                           }}
@@ -717,12 +794,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       "-"
                     )}
                   </td>
-                  {/* <td className="table-cell">{countFiles(p, "3d")}</td>
-                  <td className="table-cell">{countFiles(p, "prova")}</td>
-                  <td className="table-cell">{countFiles(p, "brief")}</td>
-                  <td className="table-cell">{countFiles(p, "quotation")}</td>
-                  <td className="table-cell">{countFiles(p, "photos")}</td>
-                  <td className="table-cell">{countFiles(p, "invoice")}</td> */}
+
                   <td className="table-cell">
                     <div style={{ display: "flex", gap: 8 }}>
                       <span
@@ -760,7 +832,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -50,17 +50,16 @@ const Sidebar = ({ role: roleProp }) => {
       { to: "/all-receipts", label: "All Receipts", icon: <ClipboardList size={18} /> },
       { to: "/financebalance", label: "Balance", icon: <DollarSignIcon size={18} /> },
       { to: "/excel-import", label: "CSV Import", icon: <Upload size={18} /> },
-      // { to: "/designer-team", label: "Designer Team", icon: <Pencil size={18} /> },
-      // { to: "/production", label: "Orders Management", icon: <ClipboardList size={18} /> },
-      // { to: "/designer-manager", label: "Designer Manager", icon: <Palette size={18} /> },
+      { to: "/orders", label: "Orders", icon: <ClipboardList size={18} /> },    
       { to: "/create-order", label: "Create Orders", icon: <ShoppingCart size={18} /> },
-      // { to: "/order-list", label: "Order List", icon: <ClipboardList size={18} /> },
       { to: "/production", label: "Operation - Projects", icon: <Factory size={18} /> },
       { to: "/account-manager", label: "Account Manager", icon: <ClipboardList size={18} /> },
     ],
     "account manager": [
       { to: "/create-order", label: "Create Orders", icon: <ShoppingCart size={18} /> },
       { to: "/account-manager", label: "Account Manager", icon: <ClipboardList size={18} /> },
+      { to: "/orders", label: "Orders", icon: <ClipboardList size={18} /> },
+
 
     ],
     "designer manager": [
@@ -81,8 +80,6 @@ const Sidebar = ({ role: roleProp }) => {
     ],
     production: [
         { to: "/production", label: "Operation - Projects", icon: <Factory size={18} /> },
-      // { to: "/order-list", label: "Order List", icon: <ClipboardList size={18} /> },
-      // { to: "/create-order", label: "Create Orders", icon: <ShoppingCart size={18} /> },
 
 
     ],
