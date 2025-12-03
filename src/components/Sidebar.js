@@ -1,6 +1,6 @@
 // components/Sidebar.jsx
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../styles/Sidebar.css";
 import {
   Users,
@@ -23,6 +23,7 @@ const Sidebar = ({ role: roleProp }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Get role from props or localStorage
   const role = roleProp || localStorage.getItem("role") || "";
@@ -39,6 +40,46 @@ const Sidebar = ({ role: roleProp }) => {
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
+  };
+
+  // Modern UI helpers
+  const isActive = (to) => {
+    const path = to.startsWith("/") ? to : `/${to}`;
+    return location.pathname.endsWith(path);
+  };
+  const itemStyle = (active) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    color: active ? "#ffffff" : "#e5e7eb",
+    textDecoration: "none",
+    background: active ? "rgba(59,130,246,0.12)" : "transparent",
+    fontWeight: active ? 700 : 600,
+    opacity: 1,
+    transition: "background .2s ease, color .2s ease",
+  });
+  const rolePillStyle = {
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "rgba(6, 192, 130, 0.84)",
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: ".01em",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+    maxWidth: 130,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+  const toggleBtnStyle = {
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    borderRadius: 10,
+    padding: "6px 8px",
+    cursor: "pointer",
   };
 
   const menuItems = {
@@ -100,7 +141,9 @@ const Sidebar = ({ role: roleProp }) => {
               <img src={require("../assests/arkansmall.svg").default || require("../assests/arkansmall.svg")} alt="Erkan Logo" style={{ height: 32, width: "auto" }} />
               <h3 className="sidebar-title" style={{ margin: 0 }}>Menu</h3>
             </div>
-            <button onClick={toggleSidebar} className="toggle-button">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {role ? <span style={rolePillStyle}>{String(role)}</span> : null}
+              <button onClick={toggleSidebar} className="toggle-button" style={toggleBtnStyle} aria-label={isOpen ? "Close menu" : "Open menu"}>
               <svg
                 className="toggle-icon"
                 fill="none"
@@ -115,20 +158,31 @@ const Sidebar = ({ role: roleProp }) => {
                   d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"}
                 />
               </svg>
-            </button>
+              </button>
+            </div>
           </div>
 
           {items.length === 0 ? (
-            <div style={{ padding: "10px", color: "#999" }}>
+            <div style={{ padding: "30px", color: "#999" }}>
               No menu for role: <strong>{role || "unknown"}</strong>
             </div>
           ) : (
             <ul className="sidebar-menu">
               {items.map((item, index) => (
                 <li key={index}>
-                  <Link to={item.to} className="menu-item">
-                    <span className="menu-icon">{item.icon}</span>
-                    {item.label}
+                  <Link
+                    to={item.to}
+                    className="menu-item"
+                    style={itemStyle(isActive(item.to))}
+                    aria-current={isActive(item.to) ? "page" : undefined}
+                  >
+                    <span
+                      className="menu-icon"
+                      style={{ color: isActive(item.to) ? "#93c5fd" : "#9ca3af" }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span style={{ flex: 1 }}>{item.label}</span>
                   </Link>
                 </li>
               ))}
@@ -137,9 +191,14 @@ const Sidebar = ({ role: roleProp }) => {
 
           {/* Logout Button */}
           <div className="sidebar-footer">
-            <button onClick={handleLogout} className="menu-item logout-button">
+            <button
+              onClick={handleLogout}
+              className="menu-item logout-button"
+              style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(90deg,#ef4444 0%,#f87171 100%)", color: "#fff", borderRadius: 10 }}
+              title="Sign out"
+            >
               <LogOut size={18} className="menu-icon" />
-              Logout
+              <span>Logout</span>
             </button>
           </div>
         </div>

@@ -17,6 +17,14 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [project, setProject] = useState(null);
+  // UI helpers for a modern look-and-feel
+  const cardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 12, padding: 16, boxShadow: "0 4px 14px rgba(16,24,40,0.08)", marginBottom: 16 };
+  const sectionTitleStyle = { margin: "0 0 12px 0", fontSize: 18, fontWeight: 700, color: "#1f2937" };
+  const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 };
+  const inputStyle = { borderRadius: 10 };
+  const actionBarStyle = { position: "sticky", top: 0, zIndex: 5, background: "#fff", padding: "10px 0", marginBottom: 16, borderBottom: "1px solid #ececf1", display: "flex", alignItems: "center", justifyContent: "space-between" };
+  const primaryBtnStyle = { background: "linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, cursor: "pointer" };
+  const ghostBtnStyle = { background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
   const [form, setForm] = useState({
     company_name: "",
     name: "",
@@ -142,26 +150,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         if (!data.success) throw new Error(data.message || "Save dates failed");
       }
 
-      // 3) Upsert location (only if provided)
-      if (effective.country || effective.state || effective.location_details) {
-        const res = await fetch(api("project_add_location.php"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({
-            project_id: Number(id),
-            country: effective.country || "",
-            state: effective.state || "",
-            details: effective.location_details || "",
-          }),
-        });
-        const text = await res.text();
-        try {
-          const data = JSON.parse(text);
-          if (!data.success) throw new Error(data.message || "Save location failed");
-        } catch {
-          if (!res.ok) throw new Error(`Save location failed (HTTP ${res.status}): ${text.slice(0,200)}`);
-        }
-      }
+
       // 3) Upload any selected files (if provided)
       {
         const tasks = [];
@@ -259,18 +248,19 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Edit Project #{id}</h2>
+      <div style={actionBarStyle}>
+        <h2 className="order-title" style={{ margin: 0 }}>
+          <span role="img" aria-label="edit" style={{ marginRight: 8 }}>📝</span>
+          <strong>Edit Project</strong>{" "}
+          <span style={{ color: "#6b7280", fontWeight: 500 }}>#{id}</span>
+        </h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={ghostBtnStyle} onClick={fetchProject}><span className="button-icon">🔄</span> Refresh</button>
+          <button style={primaryBtnStyle} onClick={() => navigate(-1)}>⬅ Back</button>
+        </div>
+      </div>
       {error && <div className="error-message">❌ {error}</div>}
       {success && <div className="success-message">{success}</div>}
-
-      <div className="status-buttons" style={{ marginBottom: 16 }}>
-        <button className="form-button refresh-button" onClick={fetchProject}>
-          <span className="button-icon">🔄</span> Refresh
-        </button>
-        <button className="form-button cancel-button" onClick={() => navigate(-1)}>
-          ⬅ Back
-        </button>
-      </div>
 
       {loading || !project ? (
         <div className="loading">
@@ -278,25 +268,27 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         </div>
       ) : (
         <>
-          <div className="form-group">
+          <div style={gridStyle}>
+            <div style={cardStyle}>
+              <h3 style={sectionTitleStyle}>Basic Info</h3>
     
-            <div className="form-field">
+              <div className="form-field">
               <label className="form-label">Project Name</label>
-              <input className="form-input" name="name" value={form.name} onChange={handleChange} />
-            </div>
-            <div className="form-field">
+              <input className="form-input" name="name" value={form.name} onChange={handleChange} style={inputStyle} />
+              </div>
+              <div className="form-field">
               <label className="form-label">Company Name</label>
-              <input className="form-input" name="company_name" value={form.company_name} onChange={handleChange} />
-            </div>
-            <div className="form-field">
+              <input className="form-input" name="company_name" value={form.company_name} onChange={handleChange} style={inputStyle} />
+              </div>
+              <div className="form-field">
               <label className="form-label">Responsible</label>
-              <input className="form-input" name="Response_name" value={form.Response_name} onChange={handleChange} />
-            </div>
-            <div className="form-field">
+              <input className="form-input" name="Response_name" value={form.Response_name} onChange={handleChange} style={inputStyle} />
+              </div>
+              <div className="form-field">
               <label className="form-label">Job No</label>
-              <input className="form-input" name="job_no" value={form.job_no} onChange={handleChange} />
-            </div>
-            <div className="form-field">
+              <input className="form-input" name="job_no" value={form.job_no} onChange={handleChange} style={inputStyle} />
+              </div>
+              <div className="form-field">
               <label className="form-label">Status</label>
               <div className="status-buttons" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {["new","design phase","Cancelled","Pending","In Deployment","Approved","Completed"].map((s) => (
@@ -311,8 +303,8 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="form-field">
+              </div>
+              <div className="form-field">
               <label className="form-label">Notes</label>
               <textarea
                 name="notes"
@@ -322,10 +314,10 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 placeholder="Notes"
                 style={{ resize: "vertical", minHeight: 80 }}
               />
-            </div>
+              </div>
 
-            {/* Location Fields */}
-            <div className="form-field" style={{border: "1px solid #ddd", borderRadius: 6, margin: "12px 0", padding: 12, background: "#fafcff"}}>
+              {/* Location Fields */}
+              <div className="form-field" style={{border: "1px solid #ddd", borderRadius: 10, margin: "12px 0", padding: 12, background: "#fafcff"}}>
               <h3 style={{margin: "0 0 10px 0"}}>Location</h3>
               <div className="form-field">
                 <label className="form-label">Country</label>
@@ -334,6 +326,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                   value={form.country || ""}
                   onChange={handleLocationCountryChange}
                   className="form-select"
+                  style={inputStyle}
                 >
                   <option value="">Select country</option>
                   {Object.keys(COUNTRIES_STATES).map((c) => (
@@ -349,6 +342,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                   onChange={handleChange}
                   className="form-select"
                   disabled={!form.country}
+                  style={inputStyle}
                 >
                   <option value="">{form.country ? "Select state" : "Select country first"}</option>
                   {(COUNTRIES_STATES[form.country] || []).map((s) => (
@@ -367,17 +361,19 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                   placeholder="Location details, address, venue..."
                 />
               </div>
-            </div>
-            {/* End Location Fields */}
+              </div>
+              {/* End Location Fields */}
 
-            <div className="form-buttons">
-              <button className="form-button submit-button" onClick={saveAll} disabled={saving}>
-                {saving ? <span className="spinner"></span> : "Save Basic"}
-              </button>
+              <div className="form-buttons">
+                <button className="form-button submit-button" onClick={saveAll} disabled={saving}>
+                  {saving ? <span className="spinner"></span> : "Save Basic"}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={cardStyle}>
+            <h3 style={sectionTitleStyle}>Dates</h3>
             <div className="form-field">
               <label className="form-label">Install Start Date</label>
               <input
@@ -386,6 +382,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="install_date"
                 value={formatForInput(form.install_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -396,6 +393,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="install_end_date"
                 value={formatForInput(form.install_end_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -406,6 +404,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="production_date"
                 value={formatForInput(form.production_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -416,6 +415,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="production_end_date"
                 value={formatForInput(form.production_end_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -426,6 +426,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="event_date"
                 value={formatForInput(form.event_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -436,6 +437,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="event_end_date"
                 value={formatForInput(form.event_end_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -446,6 +448,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="remove_date"
                 value={formatForInput(form.remove_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -456,6 +459,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
                 name="remove_end_date"
                 value={formatForInput(form.remove_end_date)}
                 onChange={handleChange}
+                style={inputStyle}
               />
             </div>
             <div className="form-buttons">
@@ -465,13 +469,13 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             </div>
           </div>
 
-          <div className="form-group">
+          <div style={cardStyle}>
             <h3 className="order-title" style={{ margin: 0, fontSize: 18 }}>Files</h3>
             {["3d", "prova", "brief", "quotation", "photos", "invoice"].map((t) => (
               <div key={t} className="form-field">
                 <label className="form-label" style={{ textTransform: "uppercase" }}>{t}</label>
                 {renderFilesList(t)}
-                <input type="file" name={t} onChange={handleFileChange} className="form-input" />
+                <input type="file" name={t} onChange={handleFileChange} className="form-input" style={inputStyle} />
               </div>
             ))}
             <div className="form-buttons">

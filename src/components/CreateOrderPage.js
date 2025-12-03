@@ -4,6 +4,15 @@ import "../styles/CreateOrderPage.css";
 import { COUNTRIES_STATES } from "../static/countries";
 
 const CreateOrderPage = ({ isSidebarOpen }) => {
+  // UI helpers
+  const cardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 12, padding: 16, boxShadow: "0 4px 14px rgba(16,24,40,0.08)", marginBottom: 16 };
+  const sectionTitleStyle = { margin: "0 0 12px 0", fontSize: 18, fontWeight: 700, color: "#1f2937" };
+  const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 };
+  const inputStyle = { borderRadius: 10 };
+  const actionBarStyle = { position: "sticky", top: 0, zIndex: 5, background: "#fff", padding: "10px 0", marginBottom: 16, borderBottom: "1px solid #ececf1", display: "flex", alignItems: "center", justifyContent: "space-between" };
+  const primaryBtnStyle = { background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, cursor: "pointer" };
+  const ghostBtnStyle = { background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
+
   const [form, setForm] = useState({
     company_name: "",
     name: "",
@@ -18,6 +27,10 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     event_end_date: "",
     remove_date: "",
     remove_end_date: "",
+    // location fields
+    country: "",
+    state: "",
+    details: "",
   });
   const [files, setFiles] = useState({
     "3d": null,
@@ -185,126 +198,151 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Create New Project</h2>
+      <div style={actionBarStyle}>
+        <h2 className="order-title" style={{ margin: 0 }}>
+          <span role="img" aria-label="plus" style={{ marginRight: 8 }}>🆕</span>
+          <strong>Create New Project</strong>
+        </h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={resetForm} disabled={loading} style={ghostBtnStyle}>
+            <span className="button-icon">🔄</span> Reset
+          </button>
+          <button type="submit" form="create-project-form" disabled={loading} style={primaryBtnStyle}>
+            {loading ? "Creating..." : "Create Project"}
+          </button>
+        </div>
+      </div>
       {error && <div className="error-message">❌ {error}</div>}
       {success && <div className="success-message">{success}</div>}
 
-      <form className="form-group" onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label className="form-label">Company Name</label>
-          <input
-            type="text"
-            name="company_name"
-            value={form.company_name}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="Company name"
-          />
-        </div>
-        <div className="form-field">
-          <label className="form-label">Project Name</label>
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="Project name"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Responsible Name</label>
-          <input
-            type="text"
-            name="Response_name"
-            value={form.Response_name}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="Responsible person"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Job No</label>
-          <input
-            type="text"
-            name="job_no"
-            value={form.job_no}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="001"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Status</label>
-          <select
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-            className="form-select"
-          >
-            <option value="new">new</option>
-            <option value="design phase">design phase</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Pending">Pending</option>
-            <option value="In Deployment">In Deployment</option>
-            <option value="Approved">Approved</option>
-            <option value="Completed">Completed</option>
-          </select>
-        </div>
-        <div className="form-field">
-          <label className="form-label">Notes</label>
-          <textarea
-            name="notes"
-            value={form.notes || ""}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="Notes"
-            style={{ resize: "vertical", minHeight: 80 }}
-          />
-        </div>
-
-        <div className="form-field">
-          <card>
-            <h3>Location</h3>              
+      <form id="create-project-form" className="form-group" onSubmit={handleSubmit}>
+        {/* Basic Info */}
+        <div style={gridStyle}>
+          <div style={cardStyle}>
+            <h3 style={sectionTitleStyle}>Basic Info</h3>
             <div className="form-field">
-          <label className="form-label">Country</label>
-          <select
-            name="country"
-            value={form.country || ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              setForm((prev) => ({
-                ...prev,
-                country: value,
-                state: "", // reset state on country change
-              }));
-            }}
-            className="form-select"
-          >
-            <option value="">Select country</option>
-            {Object.keys(COUNTRIES_STATES).map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-field">
-          <label className="form-label">State</label>
-          <select
-            name="state"
-            value={form.state || ""}
-            onChange={handleChange}
-            className="form-select"
-            disabled={!form.country}
-          >
-            <option value="">{form.country ? "Select state" : "Select country first"}</option>
-            {(COUNTRIES_STATES[form.country] || []).map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
+              <label className="form-label">Company Name</label>
+              <input
+                type="text"
+                name="company_name"
+                value={form.company_name}
+                onChange={handleChange}
+                className="form-input"
+                style={inputStyle}
+                placeholder="Company name"
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Project Name</label>
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="form-input"
+                style={inputStyle}
+                placeholder="Project name"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Responsible Name</label>
+              <input
+                type="text"
+                name="Response_name"
+                value={form.Response_name}
+                onChange={handleChange}
+                className="form-input"
+                style={inputStyle}
+                placeholder="Responsible person"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Job No</label>
+              <input
+                type="text"
+                name="job_no"
+                value={form.job_no}
+                onChange={handleChange}
+                className="form-input"
+                style={inputStyle}
+                placeholder="001"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Status</label>
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className="form-select"
+                style={inputStyle}
+              >
+                <option value="new">new</option>
+                <option value="design phase">design phase</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Pending">Pending</option>
+                <option value="In Deployment">In Deployment</option>
+                <option value="Approved">Approved</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="form-label">Notes</label>
+              <textarea
+                name="notes"
+                value={form.notes || ""}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="Notes"
+                style={{ resize: "vertical", minHeight: 80 }}
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div style={cardStyle}>
+            <h3 style={sectionTitleStyle}>Location</h3>
+            <div className="form-field">
+              <label className="form-label">Country</label>
+              <select
+                name="country"
+                value={form.country || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    country: value,
+                    state: "",
+                  }));
+                }}
+                className="form-select"
+                style={inputStyle}
+              >
+                <option value="">Select country</option>
+                {Object.keys(COUNTRIES_STATES).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="form-label">State</label>
+              <select
+                name="state"
+                value={form.state || ""}
+                onChange={handleChange}
+                className="form-select"
+                disabled={!form.country}
+                style={inputStyle}
+              >
+                <option value="">{form.country ? "Select state" : "Select country first"}</option>
+                {(COUNTRIES_STATES[form.country] || []).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-field">
               <label className="form-label">Details</label>
               <textarea
@@ -315,10 +353,13 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 onChange={handleChange}
               />
             </div>
-          </card>
+          </div>
         </div>
 
-        <div className="form-group">
+        {/* Dates */}
+        <div style={cardStyle}>
+          <h3 style={sectionTitleStyle}>Dates</h3>
+          <div className="form-group">
             <div className="form-field">
               <label className="form-label">Install Start Date</label>
               <input
@@ -327,6 +368,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="install_date"
                 value={form.install_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -337,6 +379,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="install_end_date"
                 value={form.install_end_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -347,6 +390,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="production_date"
                 value={form.production_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -357,6 +401,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="production_end_date"
                 value={form.production_end_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -367,6 +412,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="event_date"
                 value={form.event_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -377,6 +423,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="event_end_date"
                 value={form.event_end_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -387,6 +434,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="remove_date"
                 value={form.remove_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             <div className="form-field">
@@ -397,32 +445,38 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
                 name="remove_end_date"
                 value={form.remove_end_date || ""}
                 onChange={handleChange}
+              style={inputStyle}
               />
             </div>
             </div>
+        </div>
+
+        {/* Files */}
+        <div style={cardStyle}>
+          <h3 style={sectionTitleStyle}>Files</h3>
         <div className="form-field">
           <label className="form-label">Upload 3D File</label>
-          <input type="file" name="3d" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="3d" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
         <div className="form-field">
           <label className="form-label">Upload Prova File</label>
-          <input type="file" name="prova" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="prova" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
         <div className="form-field">
           <label className="form-label">Upload Brief File</label>
-          <input type="file" name="brief" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="brief" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
         <div className="form-field">
           <label className="form-label">Upload Quotation File</label>
-          <input type="file" name="quotation" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="quotation" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
         <div className="form-field">
           <label className="form-label">Upload Photos</label>
-          <input type="file" name="photos" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="photos" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
         <div className="form-field">
           <label className="form-label">Upload Invoice File</label>
-          <input type="file" name="invoice" onChange={handleFileChange} className="form-input" />
+          <input type="file" name="invoice" onChange={handleFileChange} className="form-input" style={inputStyle} />
         </div>
 
         <div className="form-buttons">
@@ -432,6 +486,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
           <button type="button" onClick={resetForm} disabled={loading} className="form-button reset-button">
             <span className="button-icon">🔄</span> Reset
           </button>
+        </div>
         </div>
       </form>
     </div>

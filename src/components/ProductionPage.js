@@ -59,6 +59,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
     noInvoice: false,
   });
   const [statusMap, setStatusMap] = useState({});
+  const [prodLocations, setProdLocations] = useState({}); // project_id -> {country,state,details}
+  const headerBarStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, position: "sticky", top: 0, zIndex: 5, background: "#fff", padding: "10px 0", borderBottom: "1px solid #ececf1" };
+  const cardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 12, padding: 12, boxShadow: "0 4px 14px rgba(16,24,40,0.06)" };
+  const primaryBtnStyle = { background: "linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, cursor: "pointer" };
+  const ghostBtnStyle = { background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
 
   const fetchProjects = async () => {
     try {
@@ -149,6 +154,38 @@ const ProductionPage = ({ isSidebarOpen }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetch production locations for currently loaded projects
+  useEffect(() => {
+    const loadProdLocs = async () => {
+      try {
+        const ids = projects.map((p) => p.id);
+        if (ids.length === 0) {
+          setProdLocations({});
+          return;
+        }
+        const entries = await Promise.all(
+          ids.map(async (pid) => {
+            try {
+              const res = await fetch(api(`production_get_location.php?prod_loc_id=${pid}`), { credentials: "include" });
+              const data = await res.json();
+              const loc = data?.location || null;
+              if (!loc) return [pid, null];
+              return [pid, { country: loc.country || "", state: loc.state || "", details: loc.details || "" }];
+            } catch {
+              return [pid, null];
+            }
+          })
+        );
+        const map = {};
+        entries.forEach(([pid, loc]) => { map[pid] = loc; });
+        setProdLocations(map);
+      } catch {
+        setProdLocations({});
+      }
+    };
+    loadProdLocs();
+  }, [projects]);  
+
   const countFiles = (project, type) => {
     const list = project?.files?.[type];
     return Array.isArray(list) ? list.length : 0;
@@ -186,6 +223,20 @@ const ProductionPage = ({ isSidebarOpen }) => {
     if (ns === "done") return "rgba(76,175,80,0.10)";
     if (ns === "inprocess") return "rgba(255,193,7,0.12)";
     return "transparent";
+  };
+  const renderStatusBadge = (text) => {
+    const t = (text || "").toString().toLowerCase();
+    let bg = "#eef2ff", color = "#3730a3", label = text || "-";
+    if (!text) { bg = "#f3f4f6"; color = "#374151"; label = "-"; }
+    else if (/(pending)/.test(t)) { bg = "rgba(251,191,36,0.18)"; color = "#92400e"; }
+    else if (/(in\\s?progress|inprocess)/.test(t)) { bg = "rgba(59,130,246,0.18)"; color = "#1e40af"; label = "In Progress"; }
+    else if (/(completed|done|approved)/.test(t)) { bg = "rgba(16,185,129,0.18)"; color = "#065f46"; }
+    else if (/(cancel)/.test(t)) { bg = "rgba(239,68,68,0.18)"; color = "#991b1b"; }
+    return (
+      <span style={{ background: bg, color, padding: "4px 10px", borderRadius: 999, fontWeight: 600, whiteSpace: "nowrap" }}>
+        {label}
+      </span>
+    );
   };
 
   // Open Materials modal and fetch full materials text
@@ -244,6 +295,13 @@ const ProductionPage = ({ isSidebarOpen }) => {
     return "";
   };
 
+  const getProdLocationText = (projectId) => {
+    const loc = prodLocations?.[projectId];
+    if (!loc) return "-";
+    const parts = [loc.country, loc.state, loc.details].filter(Boolean);
+    return parts.length ? parts.join(" - ") : "-";
+  };
+
   const rangesOverlap = (startA, endA, startB, endB) => {
     if (!startB && !endB) return true; // no filter applied
     const aStart = startA ? new Date(startA) : null;
@@ -288,18 +346,22 @@ const ProductionPage = ({ isSidebarOpen }) => {
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Operation - Projects</h2>
+      <div style={headerBarStyle}>
+        <h2 className="order-title" style={{ margin: 0 }}>
+          <span role="img" aria-label="ops" style={{ marginRight: 8 }}>📋</span>
+          <strong>Operation - Projects</strong>
+        </h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={fetchAll} style={ghostBtnStyle}>
+            <span className="button-icon">🔄</span> Refresh
+          </button>
+          <button onClick={() => setShowFilters(true)} style={primaryBtnStyle}>
+            Filters
+          </button>
+        </div>
+      </div>
 
       {error && <div className="error-message">❌ {error}</div>}
-
-      <div className="status-buttons">
-        <button onClick={fetchAll} className="form-button refresh-button">
-          <span className="button-icon">🔄</span> Refresh
-        </button>
-        <button onClick={() => setShowFilters(true)} className="form-button submit-button">
-          Filters
-        </button>
-      </div>
       {showFilters && (
         <div className="modal" role="dialog" aria-modal="true" onClick={() => setShowFilters(false)}>
           <div
@@ -464,8 +526,9 @@ const ProductionPage = ({ isSidebarOpen }) => {
       ) : filteredProjects.length === 0 ? (
         <p className="no-orders">No projects found.</p>
       ) : (
-        <div >
-          <table className="order-table" style={{overflowX: "auto", whiteSpace: "nowrap" }}>
+        <div style={cardStyle}>
+          <div style={{ overflowX: "auto" }}>
+          <table className="order-table" style={{ minWidth: 960, whiteSpace: "nowrap" }}>
             <thead>
               <tr>
                 <th>Created At</th>
@@ -475,6 +538,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                 <th>Contact</th>
                 <th>Job No</th>
                 <th>Location</th>
+                <th>Production Location</th>
                 <th>Status</th>
                 {compactProd ? (
                   <>
@@ -556,7 +620,12 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       {getLocationText(p) || "-"}
                     </div>
                   </td>
-                  <td className="table-cell">{p.status || "-"}</td>
+                  <td className="table-cell" style={{ maxWidth: 220, overflow: "auto", whiteSpace: "nowrap" }}>
+                    <div style={{ maxWidth: 220, overflowX: "auto", whiteSpace: "nowrap" }}>
+                      {getProdLocationText(p.id)}
+                    </div>
+                  </td>
+                  <td className="table-cell">{renderStatusBadge(p.status)}</td>
                   {(() => {
                     const s = prodSummary[p.id] || {};
                     const po = s?.po || {};
@@ -836,6 +905,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
