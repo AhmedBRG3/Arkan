@@ -209,6 +209,33 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     if (!ok) throw new Error("Upload failed");
   };
 
+  // Photo category helpers (front-end only)
+  const PHOTO_CATEGORIES = ["Production","Installation","3D","Other"];
+  const deriveFileKey = (file, idx) => {
+    if (!file) return String(idx);
+    if (typeof file === "string") return file;
+    return file.path || file.name || String(idx);
+  };
+  const loadPhotoCategoryMap = (projectId) => {
+    try {
+      const raw = (typeof window !== "undefined") ? localStorage.getItem(`photoCats:${projectId}`) : null;
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+  const savePhotoCategory = (projectId, key, category) => {
+    try {
+      const map = loadPhotoCategoryMap(projectId);
+      map[key] = category;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`photoCats:${projectId}`, JSON.stringify(map));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const formatForInput = (value) => {
     if (!value) return "";
     // If already date-only, append midnight time
@@ -230,6 +257,69 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
 
   const renderFilesList = (type) => {
     const items = Array.isArray(project?.files?.[type]) ? project.files[type] : [];
+    if (type === "photos") {
+      const map = loadPhotoCategoryMap(project?.id || id);
+      const groups = { Production: [], Installation: [], "3D": [], Other: [] };
+      items.forEach((f, idx) => {
+        const key = deriveFileKey(f, idx);
+        const catServer = f?.category && PHOTO_CATEGORIES.includes(f.category) ? f.category : null;
+        const catLocal = map[key] && PHOTO_CATEGORIES.includes(map[key]) ? map[key] : null;
+        const cat = catServer || catLocal || "Other";
+        groups[cat].push({ file: f, idx, key });
+      });
+      return (
+        <div style={{ margin: "6px 0 0 0" }}>
+          {PHOTO_CATEGORIES.map((cat) => {
+            const list = groups[cat] || [];
+            if (list.length === 0) return null;
+            return (
+              <div key={cat} style={{ marginBottom: 8 }}>
+                <div style={{ fontWeight: 600, marginLeft: 4, marginBottom: 4 }}>{cat}</div>
+                <ul style={{ margin: "0 0 0 16px" }}>
+                  {list.map(({ file: f, idx, key }) => {
+                    const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
+                    const name = f.name || f.path || f;
+                    const current = (f?.category && PHOTO_CATEGORIES.includes(f.category)) ? f.category : (map[key] && PHOTO_CATEGORIES.includes(map[key]) ? map[key] : "Other");
+                    return (
+                      <li key={`${cat}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <a href={href} target="_blank" rel="noreferrer" style={{ flex: "1 1 auto" }}>{name}</a>
+                        <select
+                          value={current}
+                          onChange={async (e) => {
+                            const newCat = e.target.value;
+                            try {
+                              await fetch(api("project_file_set_category.php"), {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ file_id: f.id, category: newCat })
+                              });
+                            } catch (_e) { /* ignore */ }
+                            savePhotoCategory(project?.id || id, key, newCat);
+                            setProject((prev) => {
+                              if (!prev) return prev;
+                              const updated = { ...prev };
+                              const arr = Array.isArray(updated.files?.photos) ? updated.files.photos : [];
+                              updated.files = { ...(updated.files || {}), photos: arr.map((pf, pidx) => (pidx === idx && pf.id === f.id) ? { ...pf, category: newCat } : pf) };
+                              return updated;
+                            });
+                          }}
+                          className="form-input"
+                          style={{ maxWidth: 160 }}
+                        >
+                          {PHOTO_CATEGORIES.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
     return (
       <ul style={{ margin: "6px 0 0 16px" }}>
         {items.length === 0 ? <li style={{ color: "#999" }}>No files</li> : null}

@@ -35,6 +35,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [compactProd, setCompactProd] = useState(true); // merge PO+Materials into one column
   const [compactDates, setCompactDates] = useState(true); // merge Install/Production/Event/Off into one column
+  const [activeFileTab, setActiveFileTab] = useState("photos");
   const [filters, setFilters] = useState({
     name: "",
     contact: "",
@@ -64,6 +65,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const cardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 12, padding: 12, boxShadow: "0 4px 14px rgba(16,24,40,0.06)" };
   const primaryBtnStyle = { background: "linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, cursor: "pointer" };
   const ghostBtnStyle = { background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
+  const PHOTO_CATEGORY_BG = { Production: "rgba(59,130,246,0.10)", Installation: "rgba(16,185,129,0.12)", "JMC":"rgba(59,130,246,0.10)", "3D": "rgba(99,102,241,0.12)", Other: "#f3f4f6" };
 
   const fetchProjects = async () => {
     try {
@@ -191,7 +193,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
     return Array.isArray(list) ? list.length : 0;
   };
 
-  const openFiles = (project) => setModalProject(project);
+  const openFiles = (project) => { setActiveFileTab("photos"); setModalProject(project); };
   const closeFiles = () => setModalProject(null);
   const role = typeof window !== "undefined" ? (localStorage.getItem("role") || "") : "";
 
@@ -237,6 +239,62 @@ const ProductionPage = ({ isSidebarOpen }) => {
         {label}
       </span>
     );
+  };
+  // Photo category helpers (front-end only)
+  const PHOTO_CATEGORIES = ["Production","Installation","3D","Other"];
+  const deriveFileKey = (file, idx) => {
+    if (!file) return String(idx);
+    if (typeof file === "string") return file;
+    return file.path || file.name || String(idx);
+  };
+  const loadPhotoCategoryMap = (projectId) => {
+    try {
+      const raw = (typeof window !== "undefined") ? localStorage.getItem(`photoCats:${projectId}`) : null;
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+  const savePhotoCategory = (projectId, key, category) => {
+    try {
+      const map = loadPhotoCategoryMap(projectId);
+      map[key] = category;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`photoCats:${projectId}`, JSON.stringify(map));
+      }
+    } catch {
+      // ignore
+    }
+  };
+  const groupPhotosByCategory = (project) => {
+    const items = Array.isArray(project?.files?.photos) ? project.files.photos : [];
+    const map = loadPhotoCategoryMap(project?.id || project?.project_id || "");
+    const groups = { Production: [], Installation: [], "3D": [], Other: [] };
+    items.forEach((f, idx) => {
+      const key = deriveFileKey(f, idx);
+      const catServer = f?.category && PHOTO_CATEGORIES.includes(f.category) ? f.category : null;
+      const catLocal = map[key] && PHOTO_CATEGORIES.includes(map[key]) ? map[key] : null;
+      const cat = catServer || catLocal || "Other";
+      groups[cat].push({ file: f, idx, key });
+    });
+    return groups;
+  };
+  const getPhotoCountsForProject = (project) => {
+    const items = Array.isArray(project?.files?.photos) ? project.files.photos : [];
+    const map = loadPhotoCategoryMap(project?.id || project?.project_id || "");
+    const counts = { Production: 0, Installation: 0, "3D": 0, Other: 0 };
+    items.forEach((f, idx) => {
+      const key = deriveFileKey(f, idx);
+      const catServer = f?.category && PHOTO_CATEGORIES.includes(f.category) ? f.category : null;
+      const catLocal = map[key] && PHOTO_CATEGORIES.includes(map[key]) ? map[key] : null;
+      const cat = catServer || catLocal || "Other";
+      counts[cat] += 1;
+    });
+    return counts;
+  };
+  const formatPhotoCountsTooltip = (project) => {
+    const c = getPhotoCountsForProject(project);
+    return `Photos — P/I/3D/O: ${c.Production}/${c.Installation}/${c["3D"]}/${c.Other}`;
   };
 
   // Open Materials modal and fetch full materials text
@@ -353,12 +411,12 @@ const ProductionPage = ({ isSidebarOpen }) => {
         </h2>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={fetchAll} style={ghostBtnStyle}>
-            <span className="button-icon">🔄</span> Refresh
-          </button>
+          <span className="button-icon">🔄</span> Refresh
+        </button>
           <button onClick={() => setShowFilters(true)} style={primaryBtnStyle}>
-            Filters
-          </button>
-        </div>
+          Filters
+        </button>
+      </div>
       </div>
 
       {error && <div className="error-message">❌ {error}</div>}
@@ -864,7 +922,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     )}
                   </td>
 
-                  <td className="table-cell">
+                  <td className="table-cell" title={formatPhotoCountsTooltip(p)}>
                     <div style={{ display: "flex", gap: 8 }}>
                       <span
                         className="icon-button"
@@ -987,33 +1045,114 @@ const ProductionPage = ({ isSidebarOpen }) => {
               </>
             ) : (
               <>
-                <h3 className="modal-title">Files - {modalProject.name}</h3>
-                <div style={{ maxHeight: 400, overflow: "auto" }}>
-                  {["3d", "prova", "brief", "quotation", "photos", "invoice"].map((type) => {
-                    const items = Array.isArray(modalProject.files?.[type]) ? modalProject.files[type] : [];
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, borderBottom: "1px solid #ececf1", paddingBottom: 8 }}>
+                  <h3 className="modal-title" style={{ margin: 0 }}>Files - {modalProject.name}</h3>
+                  <button className="form-button cancel-button" onClick={closeFiles} aria-label="Close">✕</button>
+                </div>
+                <div style={{ maxHeight: 520, overflow: "auto", paddingRight: 6 }}>
+                  {(() => {
+                    const tabs = ["photos","3d","prova","brief","quotation","invoice"];
+                    const counts = {};
+                    tabs.forEach((t) => {
+                      counts[t] = Array.isArray(modalProject.files?.[t]) ? modalProject.files[t].length : 0;
+                    });
                     return (
-                      <div key={type} style={{ marginBottom: 12 }}>
-                        <strong style={{ textTransform: "uppercase" }}>{type}</strong>
-                        {items.length === 0 ? (
-                          <div style={{ color: "#999" }}>No files</div>
-                        ) : (
+                      <>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                          {tabs.map((t) => {
+                            const active = activeFileTab === t;
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setActiveFileTab(t)}
+                                style={{
+                                  padding: "6px 12px",
+                                  borderRadius: 999,
+                                  border: `1px solid ${active ? "#2563eb" : "#e5e7eb"}`,
+                                  background: active ? "rgba(37,99,235,0.08)" : "#fff",
+                                  color: active ? "#1e40af" : "#374151",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {t.toUpperCase()} {counts[t] ? `(${counts[t]})` : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div
+                          style={{
+                            marginBottom: 12,
+                            background: "#fff",
+                            border: "1px solid #e6e6f0",
+                            borderRadius: 10,
+                            padding: 12,
+                            boxShadow: "0 2px 10px rgba(16,24,40,0.05)",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, textTransform: "uppercase", marginBottom: 6, color: "#1f2937" }}>
+                            {activeFileTab}
+                          </div>
+                          {activeFileTab === "photos" ? (
+                            (() => {
+                              const groups = groupPhotosByCategory(modalProject);
+                              return (
+                                <div style={{ marginTop: 6 }}>
+                                  {PHOTO_CATEGORIES.map((cat) => {
+                                    const list = groups[cat] || [];
+                                    if (list.length === 0) return null;
+                                    return (
+                                      <div key={cat} style={{ marginBottom: 10, background: PHOTO_CATEGORY_BG[cat] || "#f3f4f6", borderRadius: 10, padding: 8 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 4, color: "#111827" }}>{cat}</div>
+                                        <ol style={{ margin: "6px 0 0 16px" }}>
+                                          {list.map(({ file: f, idx }) => {
+                                            const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
+                                            const name = f.name || f.path || f;
+                                            return (
+                                              <li key={`${cat}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px dashed #eee" }}>
+                                                <span aria-hidden="true" style={{ opacity: 0.8 }}>📎</span>
+                                                <a href={href} target="_blank" rel="noreferrer" style={{ flex: "1 1 auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                  {name}
+                                                </a>
+                                              </li>
+                                            );
+                                          })}
+                                        </ol>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            (() => {
+                              const items = Array.isArray(modalProject.files?.[activeFileTab]) ? modalProject.files[activeFileTab] : [];
+                              if (items.length === 0) {
+                                return <div style={{ color: "#999" }}>No files</div>;
+                              }
+                              return (
                           <ol style={{ margin: "6px 0 0 16px" }}>
                             {items.map((f, idx) => {
                               const href = f.path ? `${API_BASE}/${f.path}` : `${API_BASE}/${f}`;
                               const name = f.name || f.path || f;
                               return (
-                                <li key={idx}>
-                                  <a href={href} target="_blank" rel="noreferrer">
+                                      <li key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px dashed #eee" }}>
+                                        <span aria-hidden="true" style={{ opacity: 0.8 }}>📎</span>
+                                        <a href={href} target="_blank" rel="noreferrer" style={{ flex: "1 1 auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {name}
                                   </a>
                                 </li>
                               );
                             })}
                           </ol>
+                              );
+                            })()
                         )}
                       </div>
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
                 <div className="modal-buttons">
                   <button onClick={closeFiles} className="form-button cancel-button">
