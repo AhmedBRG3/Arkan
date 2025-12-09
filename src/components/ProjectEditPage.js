@@ -173,6 +173,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
 
   useEffect(() => {
     fetchProject();
+    fetchPendingRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -253,6 +254,22 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     const hh = pad2(d.getHours());
     const mi = pad2(d.getMinutes());
     return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  };
+
+  // Pending status request banner (read-only)
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const fetchPendingRequest = async () => {
+    try {
+      const res = await fetch(api(`status_request_list.php?project_id=${id}&status=pending`));
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.items) && data.items.length > 0) {
+        setPendingRequest(data.items[0]);
+      } else {
+        setPendingRequest(null);
+      }
+    } catch (_) {
+      setPendingRequest(null);
+    }
   };
 
   const renderFilesList = (type) => {
@@ -361,6 +378,13 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
           <div style={gridStyle}>
             <div style={cardStyle}>
               <h3 style={sectionTitleStyle}>Basic Info</h3>
+              {pendingRequest ? (
+                <div style={{ padding: 12, border: "1px solid #f59e0b", borderRadius: 10, background: "rgba(251,191,36,0.12)", marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, color: "#92400e" }}>Pending status request</div>
+                  <div>From: {pendingRequest.from_status || "-"} → To: {pendingRequest.to_status}</div>
+                  {pendingRequest.reason ? <div style={{ marginTop: 6, color: "#374151" }}>Reason: {pendingRequest.reason}</div> : null}
+                </div>
+              ) : null}
     
               <div className="form-field">
               <label className="form-label">Project Name</label>

@@ -41,6 +41,10 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
   const [modalProject, setModalProject] = useState(null);
   const [activeFileTab, setActiveFileTab] = useState("photos");
   const [showFilters, setShowFilters] = useState(false);
+  const [requestsModal, setRequestsModal] = useState(false);
+  const [statusRequests, setStatusRequests] = useState([]);
+  const [reqLoading, setReqLoading] = useState(false);
+  const [reqError, setReqError] = useState("");
   const [filters, setFilters] = useState({
     name: "",
     contact: "",
@@ -96,6 +100,48 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
 
   const openFiles = (project) => { setActiveFileTab("photos"); setModalProject(project); };
   const closeFiles = () => setModalProject(null);
+
+  const fetchStatusRequests = async () => {
+    try {
+      setReqLoading(true);
+      setReqError("");
+      const res = await fetch(api("status_request_list.php?status=pending"));
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.items)) {
+        setStatusRequests(data.items);
+      } else {
+        setStatusRequests([]);
+        setReqError(data?.message || "Failed to load requests");
+      }
+    } catch (e) {
+      setStatusRequests([]);
+      setReqError("Failed to load requests");
+    } finally {
+      setReqLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (requestsModal) fetchStatusRequests();
+  }, [requestsModal]);
+
+  const actOnRequest = async (reqId, action) => {
+    try {
+      setReqError("");
+      const approverName = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("loggedUser")).username || 0) : 0;
+      const res = await fetch(api("status_request_update.php"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: reqId, approver_name: approverName, action })
+      });
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.message || "Action failed");
+      setStatusRequests((prev) => prev.filter((r) => r.id !== reqId));
+      fetchProjects();
+    } catch (e) {
+      setReqError(e.message || "Failed to update request");
+    }
+  };
 
   const handleFilterChange = (e) => {
     const { name, type, value, checked } = e.target;
@@ -258,6 +304,9 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
           </button>
           <button onClick={() => setShowFilters(true)} style={primaryBtnStyle}>
             Filters
+          </button>
+          <button onClick={() => setRequestsModal(true)} style={{ ...primaryBtnStyle, background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)" }}>
+            Status Requests
           </button>
         </div>
       </div>
@@ -740,6 +789,46 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                 </div>
                 <div className="modal-buttons"><button onClick={closeFiles} className="form-button cancel-button">Close</button></div>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {requestsModal && (
+        <div className="modal" role="dialog" aria-modal="true" onClick={() => setRequestsModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 900 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, borderBottom: "1px solid #ececf1", paddingBottom: 8 }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>Status Requests (pending)</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="form-button refresh-button" onClick={fetchStatusRequests}>Refresh</button>
+                <button className="form-button cancel-button" onClick={() => setRequestsModal(false)}>Close</button>
+              </div>
+            </div>
+            {reqError && <div className="error-message">❌ {reqError}</div>}
+            {reqLoading ? (
+              <div className="loading"><span className="spinner"></span> Loading...</div>
+            ) : statusRequests.length === 0 ? (
+              <div style={{ color: "#6b7280" }}>No pending requests.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {statusRequests.map((r) => (
+                  <div key={r.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <div><strong>Project:</strong> {r.project_name} (#{r.project_id})</div>
+                      <div><strong>Company:</strong> {r.company_name || "-"}</div>
+                      <div><strong>Requested:</strong> {r.created_at}</div>
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <strong>From:</strong> {r.from_status || "-"} → <strong>To:</strong> {r.to_status}
+                    </div>
+                    {r.reason ? <div style={{ marginTop: 4, color: "#374151" }}><strong>Reason:</strong> {r.reason}</div> : null}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button className="form-button submit-button" onClick={() => actOnRequest(r.id, "approve")}>Approve</button>
+                      <button className="form-button cancel-button" onClick={() => actOnRequest(r.id, "deny")}>Deny</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

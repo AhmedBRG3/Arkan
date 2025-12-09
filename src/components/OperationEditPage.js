@@ -85,8 +85,64 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     }
   };
 
+  // Status request (operation -> account manager)
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [requestReason, setRequestReason] = useState("");
+  const requesterName = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("loggedUser")).username || 0) : 0;
+console.log(requesterName);
+  const fetchPendingRequest = async () => {
+    try {
+      const res = await fetch(api(`status_request_list.php?project_id=${id}&status=pending`));
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.items) && data.items.length > 0) {
+        setPendingRequest(data.items[0]);
+      } else {
+        setPendingRequest(null);
+      }
+    } catch (_) {
+      setPendingRequest(null);
+    }
+  };
+
+  const requestStatusChange = async (toStatus) => {
+    if (!requesterName) {
+      setError("Requester id not found. Please re-login.");
+      return;
+    }
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch(api("status_request_create.php"), {
+        method: "POST",
+        
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: Number(id),
+          requester_name: requesterName,
+          to_status: toStatus,
+          reason: requestReason || null,
+        }),
+      });
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.message || "Request failed");
+      setSuccess("Request sent for approval.");
+      setPendingRequest({
+        id: data.id,
+        project_id: Number(id),
+        from_status: form.status,
+        to_status: toStatus,
+        status: "pending",
+        reason: requestReason || "",
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      setError(e.message || "Failed to send request");
+    }
+  };
+
   useEffect(() => {
     fetchProject();
+    fetchPendingRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -245,19 +301,42 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
         <>
           <div className="form-group">
             <div className="form-field">
-              <label className="form-label">Status</label>
+              <label className="form-label">Request Status Change</label>
+              {pendingRequest ? (
+                <div style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10, background: "rgba(251,191,36,0.12)", marginBottom: 10 }}>
+                  <div style={{ fontWeight: 700, color: "#92400e" }}>Pending approval</div>
+                  <div>From: {pendingRequest.from_status || form.status}</div>
+                  <div>To: {pendingRequest.to_status}</div>
+                  {pendingRequest.reason ? <div style={{ marginTop: 6, color: "#374151" }}>Reason: {pendingRequest.reason}</div> : null}
+                </div>
+              ) : null}
               <div className="status-buttons" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {["new","design phase","Cancelled","Pending","Approved","In Process ","Completed"].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`status-button ${form.status === s ? "active" : ""}`}
-                    title={`Set status to ${s} and save`}
-                    onClick={() => saveAll({ status: s })}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {["new","design phase","Cancelled","Pending","Approved","In Process ","Completed"].map((s) => {
+                  const isActive = pendingRequest ? pendingRequest.to_status === s : form.status === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`status-button ${isActive ? "active" : ""}`}
+                      title={pendingRequest ? "Pending approval" : `Request status ${s}`}
+                      onClick={() => requestStatusChange(s)}
+                      disabled={!!pendingRequest}
+                    >
+                      {pendingRequest ? "Pending" : "Request"} {s}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="form-field" style={{ marginTop: 8 }}>
+                <label className="form-label">Reason (optional)</label>
+                <textarea
+                  className="form-input"
+                  value={requestReason}
+                  onChange={(e) => setRequestReason(e.target.value)}
+                  placeholder="Why do you need this change?"
+                  style={{ minHeight: 70 }}
+                  disabled={!!pendingRequest}
+                />
               </div>
             </div>
             <div className="form-field">
