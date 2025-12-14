@@ -43,6 +43,7 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [requestsModal, setRequestsModal] = useState(false);
   const [statusRequests, setStatusRequests] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [reqLoading, setReqLoading] = useState(false);
   const [reqError, setReqError] = useState("");
   const [filters, setFilters] = useState({
@@ -109,12 +110,15 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
       const data = await res.json();
       if (data?.success && Array.isArray(data.items)) {
         setStatusRequests(data.items);
+        setPendingCount(data.items.length);
       } else {
         setStatusRequests([]);
+        setPendingCount(0);
         setReqError(data?.message || "Failed to load requests");
       }
     } catch (e) {
       setStatusRequests([]);
+      setPendingCount(0);
       setReqError("Failed to load requests");
     } finally {
       setReqLoading(false);
@@ -125,10 +129,17 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
     if (requestsModal) fetchStatusRequests();
   }, [requestsModal]);
 
+  useEffect(() => {
+    fetchStatusRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const actOnRequest = async (reqId, action) => {
     try {
       setReqError("");
-      const approverName = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("loggedUser")).username || 0) : 0;
+      const approverName = typeof window !== "undefined"
+        ? (() => { try { return (JSON.parse(localStorage.getItem("loggedUser"))?.username) || ""; } catch { return ""; } })()
+        : "";
       const res = await fetch(api("status_request_update.php"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,6 +148,7 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
       const data = await res.json();
       if (!data?.success) throw new Error(data?.message || "Action failed");
       setStatusRequests((prev) => prev.filter((r) => r.id !== reqId));
+      setPendingCount((prev) => Math.max(0, prev - 1));
       fetchProjects();
     } catch (e) {
       setReqError(e.message || "Failed to update request");
@@ -305,8 +317,24 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
           <button onClick={() => setShowFilters(true)} style={primaryBtnStyle}>
             Filters
           </button>
-          <button onClick={() => setRequestsModal(true)} style={{ ...primaryBtnStyle, background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)" }}>
+          <button onClick={() => setRequestsModal(true)} style={{ ...primaryBtnStyle, position: "relative", background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)" }}>
             Status Requests
+            {pendingCount > 0 && (
+              <span style={{
+                position: "absolute",
+                top: -6,
+                right: -6,
+                background: "#ef4444",
+                color: "#fff",
+                borderRadius: 999,
+                padding: "2px 6px",
+                fontSize: 12,
+                fontWeight: 700,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.15)"
+              }}>
+                {pendingCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -817,9 +845,12 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                       <div><strong>Project:</strong> {r.project_name} (#{r.project_id})</div>
                       <div><strong>Company:</strong> {r.company_name || "-"}</div>
                       <div><strong>Requested:</strong> {r.created_at}</div>
+                        {/* <div><strong>Requester:</strong> {r.requester_name || "-"}</div> */}
                     </div>
                     <div style={{ marginTop: 6 }}>
                       <strong>From:</strong> {r.from_status || "-"} → <strong>To:</strong> {r.to_status}
+                      <div style={{ marginTop: 4  }}><strong>Requester:</strong> {r.requester_name || "-"}</div>
+
                     </div>
                     {r.reason ? <div style={{ marginTop: 4, color: "#374151" }}><strong>Reason:</strong> {r.reason}</div> : null}
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
