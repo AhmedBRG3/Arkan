@@ -1,5 +1,5 @@
 // components/CreateOrderPage.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "../styles/CreateOrderPage.css";
 import { COUNTRIES_STATES } from "../static/countries";
 
@@ -41,8 +41,51 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     invoice: null,
   });
   const [loading, setLoading] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [companies, setCompanies] = useState([]);
+  const [showAddCompany, setShowAddCompany] = useState(false);
+  const [addingCompany, setAddingCompany] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: "", phone: "", type: "Client" });
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setLoadingCompanies(true);
+      try {
+        const res = await fetch(
+          "https://arkanaltafawuq.com/arkan-system/get_clients.php"
+        );
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.clients)) {
+          setCompanies(
+            data.clients.map((c) => ({
+              id: c.id ?? c.client_id ?? c.vendor_id ?? c.company_id ?? String(Math.random()),
+              name:
+                c.name ||
+                c.client_name ||
+                c.company_name ||
+                c.full_name ||
+                c.name_en ||
+                c.name_ar ||
+                "Unnamed",
+              phone: c.phone || c.mobile || "",
+              type: c.type || c.client_type || c.vendor_type || "",
+            }))
+          );
+        } else {
+          setCompanies([]);
+        }
+      } catch (err) {
+        console.error("Failed to load companies", err);
+        setCompanies([]);
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -81,6 +124,52 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
     setError("");
     setSuccess("");
     document.querySelectorAll('input[type="file"]').forEach((i) => (i.value = ""));
+  };
+
+  const handleAddCompany = async () => {
+    setError("");
+    if (!newCompany.name) {
+      setError("Please add a company name before submitting.");
+      return;
+    }
+    setAddingCompany(true);
+    try {
+      const res = await fetch(
+        "https://arkanaltafawuq.com/arkan-system/add_client.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: newCompany.name,
+            phone: newCompany.phone || "",
+            type: newCompany.type || "Client",
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to add company");
+      }
+      // refresh list and preselect the new company
+      setCompanies((prev) => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          name: newCompany.name,
+          phone: newCompany.phone || "",
+          type: newCompany.type || "Client",
+        },
+      ]);
+      setForm((prev) => ({ ...prev, company_name: newCompany.name }));
+      setNewCompany({ name: "", phone: "", type: "Client" });
+      setShowAddCompany(false);
+      setSuccess("✅ Company added. You can continue creating the project.");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to add company");
+    } finally {
+      setAddingCompany(false);
+    }
   };
 
   const createProject = async () => {
@@ -221,16 +310,73 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
           <div style={cardStyle}>
             <h3 style={sectionTitleStyle}>Basic Info</h3>
             <div className="form-field">
-              <label className="form-label">Company Name</label>
-              <input
-                type="text"
+              <label className="form-label">Company</label>
+              <select
                 name="company_name"
                 value={form.company_name}
                 onChange={handleChange}
-                className="form-input"
+                className="form-select"
                 style={inputStyle}
-                placeholder="Company name"
-              />
+              >
+                <option value="">
+                  {loadingCompanies ? "Loading companies..." : "Select company"}
+                </option>
+                {companies.map((c) => {
+                  const typeLabel = c.type ? c.type : "";
+                  return (
+                    <option key={c.id} value={c.name}>
+                      {c.name} {typeLabel ? `(${typeLabel})` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+              <div style={{ marginTop: 8, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>Missing company?</span>
+                <button
+                  type="button"
+                  style={ghostBtnStyle}
+                  onClick={() => setShowAddCompany((v) => !v)}
+                >
+                  {showAddCompany ? "Close" : "Add new"}
+                </button>
+              </div>
+              {showAddCompany && (
+                <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Company name"
+                    value={newCompany.name}
+                    onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
+                    className="form-input"
+                    style={inputStyle}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Phone (optional)"
+                    value={newCompany.phone}
+                    onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })}
+                    className="form-input"
+                    style={inputStyle}
+                  />
+                  <select
+                    value={newCompany.type}
+                    onChange={(e) => setNewCompany({ ...newCompany, type: e.target.value })}
+                    className="form-select"
+                    style={inputStyle}
+                  >
+                    <option value="Client">Client</option>
+                    <option value="Vendor">Vendor</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddCompany}
+                    disabled={addingCompany}
+                    style={primaryBtnStyle}
+                  >
+                    {addingCompany ? "Adding..." : "Add company"}
+                  </button>
+                </div>
+              )}
             </div>
             <div className="form-field">
               <label className="form-label">Project Name</label>
