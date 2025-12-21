@@ -17,6 +17,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
   const [form, setForm] = useState({
     status: "new",
     notes: "",
+    request_type: "",
   });
   const [files, setFiles] = useState({
     "3d": null,
@@ -38,6 +39,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
       setForm({
         status: data.project.status || "new",
         notes: data.project?.notes || "",
+        request_type: data.project?.request_type || "",
       });
     } catch (e) {
       setError(e.message || "Failed to load");
@@ -52,7 +54,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
     setSuccess("");
     try {
       const effective = { ...form, ...overrides };
-      // Update only status and notes
+      // Update status, notes, request_type
       {
         const res = await fetch(api("projects_update.php"), {
           method: "POST",
@@ -61,6 +63,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
             id: Number(id),
             status: effective.status,
             note: effective.notes,
+            request_type: effective.request_type,
           }),
         });
         const data = await res.json();
@@ -302,6 +305,17 @@ console.log(requesterName);
           <div className="form-group">
             <div className="form-field">
               <label className="form-label">Request Status Change</label>
+              <div className="form-field" style={{ marginTop: 8 }}>
+                <label className="form-label">Reason (optional)</label>
+                <textarea
+                  className="form-input"
+                  value={requestReason}
+                  onChange={(e) => setRequestReason(e.target.value)}
+                  placeholder="Why do you need this change?"
+                  style={{ minHeight: 70 }}
+                  disabled={!!pendingRequest}
+                />
+              </div>
               {pendingRequest ? (
                 <div style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10, background: "rgba(251,191,36,0.12)", marginBottom: 10 }}>
                   <div style={{ fontWeight: 700, color: "#92400e" }}>Pending approval</div>
@@ -327,17 +341,17 @@ console.log(requesterName);
                   );
                 })}
               </div>
-              <div className="form-field" style={{ marginTop: 8 }}>
-                <label className="form-label">Reason (optional)</label>
-                <textarea
-                  className="form-input"
-                  value={requestReason}
-                  onChange={(e) => setRequestReason(e.target.value)}
-                  placeholder="Why do you need this change?"
-                  style={{ minHeight: 70 }}
-                  disabled={!!pendingRequest}
-                />
-              </div>
+             
+            </div>
+            <div className="form-field">
+              <label className="form-label">Request Type</label>
+              <input
+                name="request_type"
+                value={form.request_type || ""}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="e.g. New project / Change request / Maintenance"
+              />
             </div>
             <div className="form-field">
               <label className="form-label">Notes</label>

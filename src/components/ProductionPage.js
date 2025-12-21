@@ -595,6 +595,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                 <th>Project Name</th>
                 <th>Contact</th>
                 <th>Job No</th>
+                <th>Request Type</th>
                 <th>Location</th>
                 <th>Production Location</th>
                 <th>Status</th>
@@ -673,6 +674,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
                   <td className="table-cell">{p.name}</td>
                   <td className="table-cell">{p.Response_name || "-"}</td>
                   <td className="table-cell">{p.job_no || "-"}</td>
+                  <td className="table-cell" style={{ maxWidth: 180, overflow: "auto", whiteSpace: "nowrap" }}>
+                    <div style={{ maxWidth: 180, overflowX: "auto", whiteSpace: "nowrap" }}>
+                      {p.request_type || "-"}
+                    </div>
+                  </td>
                   <td className="table-cell" style={{ maxWidth: 180, overflow: "auto", whiteSpace: "nowrap" }}>
                     <div style={{ maxWidth: 180, overflowX: "auto", whiteSpace: "nowrap" }}>
                       {getLocationText(p) || "-"}
