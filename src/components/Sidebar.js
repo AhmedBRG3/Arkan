@@ -87,7 +87,7 @@ const Sidebar = ({ role: roleProp }) => {
       { to: "/manage-users", label: "Manage Users", icon: <Users size={18} /> },
       { to: "/clients", label: "Clients/Vendors", icon: <FileText size={18} /> },
       { to: "/warehouse", label: "Warehouse", icon: <Package size={18} /> },
-      { to: "/finance", label: "Finance", icon: <BadgeDollarSign size={18} /> },
+      // { to: "/finance", label: "Finance", icon: <BadgeDollarSign size={18} /> },
       { to: "/all-receipts", label: "All Receipts", icon: <ClipboardList size={18} /> },
       { to: "/financebalance", label: "Balance", icon: <DollarSignIcon size={18} /> },
       { to: "/excel-import", label: "CSV Import", icon: <Upload size={18} /> },
@@ -111,7 +111,7 @@ const Sidebar = ({ role: roleProp }) => {
       { to: "/designer-team", label: "Designer Team", icon: <Pencil size={18} /> },
     ],
     finance: [
-      { to: "/finance", label: "Finance", icon: <BadgeDollarSign size={18} /> },
+      // { to: "/finance", label: "Finance", icon: <BadgeDollarSign size={18} /> },
       { to: "/all-receipts", label: "All Receipts", icon: <ClipboardList size={18} /> },
       { to: "/warehouse", label: "Warehouse", icon: <Package size={18} /> },
       { to: "/financebalance", label: "Balance", icon: <DollarSignIcon size={18} /> },

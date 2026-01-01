@@ -3,15 +3,58 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const API = "https://arkanaltafawuq.com/arkan-system";
 
-const tiny = {
-  btn: {
-    padding: "6px 10px",
-    border: "none",
-    borderRadius: 4,
-    cursor: "pointer",
-  },
-  input: { padding: 8, borderRadius: 6, border: "1px solid #ddd" },
-  card: { border: "1px solid #e5e5e5", borderRadius: 10, padding: 16 },
+const cardStyle = { 
+  background: "#fff", 
+  border: "1px solid #e6e6f0", 
+  borderRadius: 12, 
+  padding: 20, 
+  boxShadow: "0 4px 14px rgba(16,24,40,0.08)", 
+  marginBottom: 24 
+};
+const sectionTitleStyle = { 
+  margin: "0 0 20px 0", 
+  fontSize: 20, 
+  fontWeight: 700, 
+  color: "#1f2937" 
+};
+const inputStyle = { 
+  borderRadius: 10, 
+  padding: "10px 12px", 
+  border: "1px solid #e5e7eb", 
+  fontSize: 14, 
+  width: "100%", 
+  boxSizing: "border-box",
+  transition: "border-color 0.2s"
+};
+const labelStyle = { 
+  display: "block", 
+  fontSize: 13, 
+  fontWeight: 600, 
+  color: "#374151", 
+  marginBottom: 6 
+};
+const buttonPrimary = {
+  background: "linear-gradient(90deg, #475569 0%, #334155 100%)",
+  color: "#fff",
+  border: "none",
+  borderRadius: 10,
+  padding: "10px 20px",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+  boxShadow: "0 2px 8px rgba(71,85,105,0.2)",
+  transition: "all 0.2s"
+};
+const buttonSecondary = {
+  background: "#f3f4f6",
+  border: "1px solid #e5e7eb",
+  borderRadius: 10,
+  padding: "10px 20px",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+  color: "#374151",
+  transition: "all 0.2s"
 };
 
 const WarehousePage = () => {
@@ -423,22 +466,61 @@ const WarehousePage = () => {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>📦 Warehouse</h2>
+    <div style={{ padding: "32px", maxWidth: 1600, margin: "0 auto", background: "#f9fafb", minHeight: "100vh" }}>
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{
+          marginBottom: 8,
+          fontSize: 32,
+          fontWeight: 700,
+          color: "#1f2937",
+          display: "flex",
+          alignItems: "center",
+          gap: 12
+        }}>
+          <span style={{ fontSize: 36 }}>📦</span>
+          Warehouse Management
+        </h1>
+        <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Manage inventory, stock movements, and warehouse operations</p>
+      </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <div style={{ 
+        display: "flex", 
+        gap: 12, 
+        marginBottom: 24,
+        background: "#fff",
+        padding: 8,
+        borderRadius: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        border: "1px solid #e6e6f0"
+      }}>
         {["stock", "add", "in", "out", "movements"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             style={{
-              ...tiny.btn,
-              background: tab === t ? "#333" : "#ccc",
-              color: tab === t ? "#fff" : "#000",
+              ...buttonSecondary,
+              background: tab === t ? "linear-gradient(90deg, #475569 0%, #334155 100%)" : "#f3f4f6",
+              color: tab === t ? "#fff" : "#374151",
+              border: tab === t ? "none" : "1px solid #e5e7eb",
+              boxShadow: tab === t ? "0 2px 8px rgba(71,85,105,0.2)" : "none",
+              padding: "10px 24px",
+              textTransform: "capitalize",
+              fontWeight: 600
+            }}
+            onMouseOver={e => {
+              if (tab !== t) e.currentTarget.style.background = "#e5e7eb";
+            }}
+            onMouseOut={e => {
+              if (tab !== t) e.currentTarget.style.background = "#f3f4f6";
             }}
           >
-            {t.toUpperCase()}
+            {t === "stock" && "📊 "}
+            {t === "add" && "➕ "}
+            {t === "in" && "⬆️ "}
+            {t === "out" && "⬇️ "}
+            {t === "movements" && "🔄 "}
+            {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -447,231 +529,379 @@ const WarehousePage = () => {
       {tab === "stock" && (
         <div>
           {/* Toolbar */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ 
+            display: "flex", 
+            gap: 12, 
+            marginBottom: 20, 
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
             <button
-              style={{ ...tiny.btn, background: "#f3f3f3", color: "#000" }}
+              style={{
+                ...buttonSecondary,
+                background: loading ? "#e5e7eb" : "#f3f4f6"
+              }}
               onClick={fetchItems}
               disabled={loading}
               title="Refresh items"
+              onMouseOver={e => {
+                if (!loading) e.currentTarget.style.background = "#e5e7eb";
+              }}
+              onMouseOut={e => {
+                if (!loading) e.currentTarget.style.background = "#f3f4f6";
+              }}
             >
-              {loading ? "Loading..." : "Refresh"}
+              {loading ? "⏳ Loading..." : "🔄 Refresh"}
             </button>
-            {/* Export (NEW) */}
             <button
-              style={{ ...tiny.btn, background: "#333", color: "#fff" }}
+              style={buttonPrimary}
               onClick={exportStockCSV}
               title="Export current view to CSV"
+              onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+              onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
             >
               ⭳ Export CSV
             </button>
-            <div style={{ alignSelf: "center", color: "#555" }}>
-              Showing <b>{filteredItems.length}</b> of <b>{items.length}</b> items
+            <div style={{ 
+              alignSelf: "center", 
+              color: "#6b7280",
+              fontSize: 14,
+              fontWeight: 500,
+              marginLeft: "auto"
+            }}>
+              Showing <strong style={{ color: "#1f2937" }}>{filteredItems.length}</strong> of <strong style={{ color: "#1f2937" }}>{items.length}</strong> items
             </div>
           </div>
 
-          {/* Filters (NEW) */}
-          <div style={{ ...tiny.card, display: "grid", gap: 10, gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto" }}>
+          {/* Filters */}
+          <div style={{ 
+            ...cardStyle, 
+            display: "grid", 
+            gap: 16, 
+            gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto",
+            marginBottom: 24
+          }}>
             <input
-              style={tiny.input}
-              placeholder="Search (code, name, description, location)"
+              style={inputStyle}
+              placeholder="🔍 Search (code, name, description, location)"
               value={stockFilters.q}
               onChange={(e) => setStockFilters({ ...stockFilters, q: e.target.value })}
+              onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+              onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
             />
             <select
-              style={tiny.input}
+              style={inputStyle}
               value={stockFilters.category}
               onChange={(e) => setStockFilters({ ...stockFilters, category: e.target.value })}
+              onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+              onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
             >
               <option value="">All categories</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select
-              style={tiny.input}
+              style={inputStyle}
               value={stockFilters.location}
               onChange={(e) => setStockFilters({ ...stockFilters, location: e.target.value })}
+              onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+              onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
             >
               <option value="">All locations</option>
               {locationOptions.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
             <input
-              style={tiny.input}
+              style={inputStyle}
               type="number"
               step="0.01"
               placeholder="Min qty"
               value={stockFilters.minQty}
               onChange={(e) => setStockFilters({ ...stockFilters, minQty: e.target.value })}
+              onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+              onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
             />
             <input
-              style={tiny.input}
+              style={inputStyle}
               type="number"
               step="0.01"
               placeholder="Max qty"
               value={stockFilters.maxQty}
               onChange={(e) => setStockFilters({ ...stockFilters, maxQty: e.target.value })}
+              onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+              onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
             />
-            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <label style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 8,
+              padding: "10px 12px",
+              cursor: "pointer"
+            }}>
               <input
                 type="checkbox"
                 checked={stockFilters.lowOnly}
                 onChange={(e) => setStockFilters({ ...stockFilters, lowOnly: e.target.checked })}
+                style={{ width: 18, height: 18, cursor: "pointer" }}
               />
-              Low only
+              <span style={{ fontSize: 14, color: "#374151", fontWeight: 500 }}>Low only</span>
             </label>
-            <div style={{ gridColumn: "1 / -1" }}>
+            <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end" }}>
               <button
-                style={{ ...tiny.btn, background: "#f3f3f3" }}
+                style={buttonSecondary}
                 onClick={clearStockFilters}
                 title="Clear all filters"
+                onMouseOver={e => e.currentTarget.style.background = "#e5e7eb"}
+                onMouseOut={e => e.currentTarget.style.background = "#f3f4f6"}
               >
-                Clear Filters
+                🗑️ Clear Filters
               </button>
             </div>
           </div>
 
           {/* Table */}
-          <div style={{ overflowX: "auto", marginTop: 10 }}>
-            <table border="1" cellPadding="8" width="100%">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Qty</th>
-                  <th>Unit</th>
-                  <th>Unit Cost</th>
-                  <th>Total Value</th>
-                  <th>Min</th>
-                  <th>Location</th>
-                  <th>Quick +/-</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((it) => {
-                  const low = Number(it.quantity) <= Number(it.reorder_level || 0);
-                  return (
-                    <tr key={it.item_id} style={low ? { background: "#fff4f4" } : undefined}>
-                      <td>{it.item_id}</td>
-                      <td>{it.item_code || "-"}</td>
-                      <td>{it.item_name}</td>
-                      <td>{it.quantity}</td>
-                      <td>{it.unit}</td>
-                      <td>{it.purchase_price ? `SAR ${parseFloat(it.purchase_price).toFixed(2)}` : '-'}</td>
-                      <td>SAR {(parseFloat(it.quantity || 0) * parseFloat(it.purchase_price || 0)).toFixed(2)}</td>
-                      <td>{it.reorder_level ?? "-"}</td>
-                      <td>{it.location ?? "-"}</td>
-                      <td>
-                        <button
-                          style={{ ...tiny.btn, background: "#e6fff0", color: "#0a6" }}
-                          onClick={() => quickAdjust(it.item_id, +1)}
-                        >
-                          +1
-                        </button>{" "}
-                        <button
-                          style={{ ...tiny.btn, background: "#ffecec", color: "#c00" }}
-                          onClick={() => quickAdjust(it.item_id, -1)}
-                        >
-                          -1
-                        </button>
+          <div style={cardStyle}>
+            <div style={{ overflowX: "auto" }}>
+              <table width="100%" style={{
+                borderCollapse: "collapse",
+                background: "#fff",
+                borderRadius: 12,
+                overflow: "hidden"
+              }}>
+                <thead>
+                  <tr style={{
+                    background: "linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%)",
+                    borderBottom: "2px solid #e5e7eb"
+                  }}>
+                    <th style={{padding: "14px 12px", textAlign: "left", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>ID</th>
+                    <th style={{padding: "14px 12px", textAlign: "left", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Code</th>
+                    <th style={{padding: "14px 12px", textAlign: "left", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Name</th>
+                    <th style={{padding: "14px 12px", textAlign: "right", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Qty</th>
+                    <th style={{padding: "14px 12px", textAlign: "left", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Unit</th>
+                    <th style={{padding: "14px 12px", textAlign: "right", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Unit Cost</th>
+                    <th style={{padding: "14px 12px", textAlign: "right", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Total Value</th>
+                    <th style={{padding: "14px 12px", textAlign: "right", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Min</th>
+                    <th style={{padding: "14px 12px", textAlign: "left", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Location</th>
+                    <th style={{padding: "14px 12px", textAlign: "center", fontWeight: 700, fontSize: 13, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px"}}>Quick +/-</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((it, idx) => {
+                    const low = Number(it.quantity) <= Number(it.reorder_level || 0);
+                    return (
+                      <tr 
+                        key={it.item_id} 
+                        style={{
+                          borderBottom: "1px solid #f3f4f6",
+                          background: low ? "rgba(239,68,68,0.05)" : (idx % 2 === 0 ? "#fff" : "#fafafa"),
+                          transition: "background 0.2s"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = low ? "rgba(239,68,68,0.1)" : "#f0f9ff"}
+                        onMouseLeave={e => e.currentTarget.style.background = low ? "rgba(239,68,68,0.05)" : (idx % 2 === 0 ? "#fff" : "#fafafa")}
+                      >
+                        <td style={{padding: "12px", fontSize: 14, color: "#1f2937", fontWeight: 500}}>{it.item_id}</td>
+                        <td style={{padding: "12px", fontSize: 14, color: "#1f2937"}}>{it.item_code || "-"}</td>
+                        <td style={{padding: "12px", fontSize: 14, color: "#1f2937", fontWeight: 500}}>{it.item_name}</td>
+                        <td style={{padding: "12px", textAlign: "right", fontSize: 14, color: "#1f2937", fontWeight: 600}}>{it.quantity}</td>
+                        <td style={{padding: "12px", fontSize: 14, color: "#6b7280"}}>{it.unit}</td>
+                        <td style={{padding: "12px", textAlign: "right", fontSize: 14, color: "#1f2937", fontFamily: "monospace"}}>{it.purchase_price ? `SAR ${parseFloat(it.purchase_price).toFixed(2)}` : '-'}</td>
+                        <td style={{padding: "12px", textAlign: "right", fontSize: 14, color: "#1f2937", fontWeight: 600, fontFamily: "monospace"}}>SAR {(parseFloat(it.quantity || 0) * parseFloat(it.purchase_price || 0)).toFixed(2)}</td>
+                        <td style={{padding: "12px", textAlign: "right", fontSize: 14, color: low ? "#dc2626" : "#1f2937", fontWeight: low ? 600 : 400}}>{it.reorder_level ?? "-"}</td>
+                        <td style={{padding: "12px", fontSize: 14, color: "#6b7280"}}>{it.location ?? "-"}</td>
+                        <td style={{padding: "12px", textAlign: "center"}}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                            <button
+                              style={{
+                                ...buttonSecondary,
+                                background: "rgba(5,150,105,0.1)",
+                                color: "#047857",
+                                border: "1px solid rgba(5,150,105,0.2)",
+                                padding: "6px 12px",
+                                fontSize: 12
+                              }}
+                              onClick={() => quickAdjust(it.item_id, +1)}
+                              onMouseOver={e => e.currentTarget.style.background = "rgba(5,150,105,0.15)"}
+                              onMouseOut={e => e.currentTarget.style.background = "rgba(5,150,105,0.1)"}
+                            >
+                              +1
+                            </button>
+                            <button
+                              style={{
+                                ...buttonSecondary,
+                                background: "rgba(153,27,27,0.1)",
+                                color: "#991b1b",
+                                border: "1px solid rgba(153,27,27,0.2)",
+                                padding: "6px 12px",
+                                fontSize: 12
+                              }}
+                              onClick={() => quickAdjust(it.item_id, -1)}
+                              onMouseOver={e => e.currentTarget.style.background = "rgba(153,27,27,0.15)"}
+                              onMouseOut={e => e.currentTarget.style.background = "rgba(153,27,27,0.1)"}
+                            >
+                              -1
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredItems.length === 0 && (
+                    <tr>
+                      <td colSpan="10" style={{textAlign: "center", padding: "48px", color: "#9ca3af", fontSize: 14}}>
+                        No items found
                       </td>
                     </tr>
-                  );
-                })}
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan="9">No items</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {/* ADD ITEM */}
       {tab === "add" && (
-        <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
-          <form onSubmit={addItem} style={{ ...tiny.card, display: "grid", gap: 10 }}>
-            <h3>➕ Add Item</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <input
-                style={tiny.input}
-                placeholder="Item Code (unique)"
-                value={newItem.item_code}
-                onChange={(e) => setNewItem({ ...newItem, item_code: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Item Name *"
-                required
-                value={newItem.item_name}
-                onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Category"
-                value={newItem.category}
-                onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Location"
-                value={newItem.location}
-                onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Unit (pcs/m/etc)"
-                value={newItem.unit}
-                onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Initial Qty"
-                value={newItem.quantity}
-                onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Reorder Level"
-                value={newItem.reorder_level}
-                onChange={(e) => setNewItem({ ...newItem, reorder_level: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Purchase Price"
-                value={newItem.purchase_price}
-                onChange={(e) => setNewItem({ ...newItem, purchase_price: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Selling Price"
-                value={newItem.selling_price}
-                onChange={(e) => setNewItem({ ...newItem, selling_price: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Supplier ID (optional)"
-                value={newItem.supplier_id}
-                onChange={(e) => setNewItem({ ...newItem, supplier_id: e.target.value })}
+        <div style={{ display: "grid", gap: 16, maxWidth: 900 }}>
+          <form onSubmit={addItem} style={{ ...cardStyle, display: "grid", gap: 16 }}>
+            <h2 style={sectionTitleStyle}>➕ Add New Item</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Item Code (unique)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter item code"
+                  value={newItem.item_code}
+                  onChange={(e) => setNewItem({ ...newItem, item_code: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Item Name *</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter item name"
+                  required
+                  value={newItem.item_name}
+                  onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Category</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter category"
+                  value={newItem.category}
+                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Location</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter location"
+                  value={newItem.location}
+                  onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Unit</label>
+                <input
+                  style={inputStyle}
+                  placeholder="pcs, m, kg, etc"
+                  value={newItem.unit}
+                  onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Initial Quantity</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Reorder Level</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.reorder_level}
+                  onChange={(e) => setNewItem({ ...newItem, reorder_level: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Purchase Price</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.purchase_price}
+                  onChange={(e) => setNewItem({ ...newItem, purchase_price: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Selling Price</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newItem.selling_price}
+                  onChange={(e) => setNewItem({ ...newItem, selling_price: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Supplier ID (optional)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter supplier ID"
+                  value={newItem.supplier_id}
+                  onChange={(e) => setNewItem({ ...newItem, supplier_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>Description</label>
+              <textarea
+                style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
+                placeholder="Enter item description"
+                value={newItem.description}
+                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
               />
             </div>
-            <textarea
-              style={{ ...tiny.input, minHeight: 80 }}
-              placeholder="Description"
-              value={newItem.description}
-              onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-            />
             <div>
-              <button style={{ ...tiny.btn, background: "#333", color: "#fff" }} type="submit">
-                Save Item
+              <button 
+                style={buttonPrimary} 
+                type="submit"
+                onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                💾 Save Item
               </button>
             </div>
           </form>
@@ -680,74 +910,121 @@ const WarehousePage = () => {
 
       {/* STOCK IN */}
       {tab === "in" && (
-        <div style={{ display: "grid", gap: 16 }}>
-          <form onSubmit={addIn} style={{ ...tiny.card, display: "grid", gap: 10 }}>
-            <h3>⬆️ Stock IN</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-              <select
-                style={tiny.input}
-                value={inForm.item_id}
-                onChange={(e) => setInForm({ ...inForm, item_id: e.target.value })}
-              >
-                <option value="">Select Item</option>
-                {items.map((i) => (
-                  <option key={i.item_id} value={i.item_id}>
-                    #{i.item_id} — {i.item_name} ({i.item_code || "no-code"})
-                  </option>
-                ))}
-              </select>
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Qty"
-                value={inForm.qty}
-                onChange={(e) => setInForm({ ...inForm, qty: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.0001"
-                placeholder="Unit Cost (optional)"
-                value={inForm.unit_cost}
-                onChange={(e) => setInForm({ ...inForm, unit_cost: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Supplier ID (optional)"
-                value={inForm.supplier_id}
-                onChange={(e) => setInForm({ ...inForm, supplier_id: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="PO Number"
-                value={inForm.po_number}
-                onChange={(e) => setInForm({ ...inForm, po_number: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="date"
-                placeholder="Receipt date (optional)"
-                value={inForm.issued_at}
-                onChange={(e) => setInForm({ ...inForm, receipt_date: e.target.value })}
-              />
-              <input
-                style={{ ...tiny.input, gridColumn: "span 3" }}
-                placeholder="Note"
-                value={inForm.note}
-                onChange={(e) => setInForm({ ...inForm, note: e.target.value })}
-              />
+        <div style={{ display: "grid", gap: 24 }}>
+          <form onSubmit={addIn} style={{ ...cardStyle, display: "grid", gap: 16 }}>
+            <h2 style={sectionTitleStyle}>⬆️ Stock IN</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Item</label>
+                <select
+                  style={inputStyle}
+                  value={inForm.item_id}
+                  onChange={(e) => setInForm({ ...inForm, item_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                >
+                  <option value="">Select Item</option>
+                  {items.map((i) => (
+                    <option key={i.item_id} value={i.item_id}>
+                      #{i.item_id} — {i.item_name} ({i.item_code || "no-code"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Quantity</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={inForm.qty}
+                  onChange={(e) => setInForm({ ...inForm, qty: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Unit Cost (optional)</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.0001"
+                  placeholder="0.0000"
+                  value={inForm.unit_cost}
+                  onChange={(e) => setInForm({ ...inForm, unit_cost: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Supplier ID (optional)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter supplier ID"
+                  value={inForm.supplier_id}
+                  onChange={(e) => setInForm({ ...inForm, supplier_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>PO Number</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter PO number"
+                  value={inForm.po_number}
+                  onChange={(e) => setInForm({ ...inForm, po_number: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Receipt Date (optional)</label>
+                <input
+                  style={inputStyle}
+                  type="date"
+                  value={inForm.receipt_date}
+                  onChange={(e) => setInForm({ ...inForm, receipt_date: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div style={{ gridColumn: "span 2" }}>
+                <label style={labelStyle}>Note</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter note"
+                  value={inForm.note}
+                  onChange={(e) => setInForm({ ...inForm, note: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
             </div>
             <div>
-              <button style={{ ...tiny.btn, background: "#333", color: "#fff" }} type="submit">
-                Add IN
+              <button 
+                style={buttonPrimary} 
+                type="submit"
+                onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                ➕ Add IN
               </button>
             </div>
           </form>
 
           {inError && (
-            <div style={{ padding: 10, background: '#ffecec', color: '#c00', border: '1px solid #f5c2c2', borderRadius: 6 }}>
-              {inError}
+            <div style={{ 
+              padding: "14px 18px", 
+              background: "rgba(239,68,68,0.1)", 
+              color: "#dc2626", 
+              border: "1px solid rgba(239,68,68,0.3)", 
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: 14
+            }}>
+              ❌ {inError}
             </div>
           )}
 
@@ -759,86 +1036,137 @@ const WarehousePage = () => {
 
       {/* STOCK OUT */}
       {tab === "out" && (
-        <div style={{ display: "grid", gap: 16 }}>
-          <form onSubmit={addOut} style={{ ...tiny.card, display: "grid", gap: 10 }}>
-            <h3>⬇️ Stock OUT</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-              <select
-                style={tiny.input}
-                value={outForm.item_id}
-                onChange={(e) => setOutForm({ ...outForm, item_id: e.target.value })}
-              >
-                <option value="">Select Item</option>
-                {items.map((i) => (
-                  <option key={i.item_id} value={i.item_id}>
-                    #{i.item_id} — {i.item_name} ({i.item_code || "no-code"})
-                  </option>
-                ))}
-              </select>
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.01"
-                placeholder="Qty"
-                value={outForm.qty}
-                onChange={(e) => setOutForm({ ...outForm, qty: e.target.value })}
-              />
-              <select
-                style={tiny.input}
-                value={outForm.reason}
-                onChange={(e) => setOutForm({ ...outForm, reason: e.target.value })}
-              >
-                <option value="usage">usage</option>
-                <option value="production">production</option>
-                <option value="sale">sale</option>
-                <option value="adjustment">adjustment</option>
-                <option value="transfer">transfer</option>
-              </select>
-              <input
-                style={tiny.input}
-                type="number"
-                step="0.0001"
-                placeholder="Unit Price"
-                value={outForm.unit_price}
-                onChange={(e) => setOutForm({ ...outForm, unit_price: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                type="date"
-                placeholder="Receipt date (optional)"
-                value={outForm.issued_at}
-                onChange={(e) => setOutForm({ ...outForm, issued_at: e.target.value })}
-              />
-              <input
-                style={tiny.input}
-                placeholder="Supplier ID (optional)"
-                value={outForm.supplier_id}
-                onChange={(e) => setOutForm({ ...outForm, supplier_id: e.target.value })}
-              />
-
-              <input
-                style={tiny.input}
-                placeholder="Order ID (optional)"
-                value={outForm.order_id}
-                onChange={(e) => setOutForm({ ...outForm, order_id: e.target.value })}
-              />
-              <input
-                style={{ ...tiny.input, gridColumn: "span 3" }}
-                placeholder="Note"
-                value={outForm.note}
-                onChange={(e) => setOutForm({ ...outForm, note: e.target.value })}
-              />
+        <div style={{ display: "grid", gap: 24 }}>
+          <form onSubmit={addOut} style={{ ...cardStyle, display: "grid", gap: 16 }}>
+            <h2 style={sectionTitleStyle}>⬇️ Stock OUT</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Item</label>
+                <select
+                  style={inputStyle}
+                  value={outForm.item_id}
+                  onChange={(e) => setOutForm({ ...outForm, item_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                >
+                  <option value="">Select Item</option>
+                  {items.map((i) => (
+                    <option key={i.item_id} value={i.item_id}>
+                      #{i.item_id} — {i.item_name} ({i.item_code || "no-code"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Quantity</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={outForm.qty}
+                  onChange={(e) => setOutForm({ ...outForm, qty: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Reason</label>
+                <select
+                  style={inputStyle}
+                  value={outForm.reason}
+                  onChange={(e) => setOutForm({ ...outForm, reason: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                >
+                  <option value="usage">Usage</option>
+                  <option value="production">Production</option>
+                  <option value="sale">Sale</option>
+                  <option value="adjustment">Adjustment</option>
+                  <option value="transfer">Transfer</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Unit Price</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.0001"
+                  placeholder="0.0000"
+                  value={outForm.unit_price}
+                  onChange={(e) => setOutForm({ ...outForm, unit_price: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Issue Date (optional)</label>
+                <input
+                  style={inputStyle}
+                  type="date"
+                  value={outForm.issued_at}
+                  onChange={(e) => setOutForm({ ...outForm, issued_at: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Supplier ID (optional)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter supplier ID"
+                  value={outForm.supplier_id}
+                  onChange={(e) => setOutForm({ ...outForm, supplier_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Order ID (optional)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter order ID"
+                  value={outForm.order_id}
+                  onChange={(e) => setOutForm({ ...outForm, order_id: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
+              <div style={{ gridColumn: "span 2" }}>
+                <label style={labelStyle}>Note</label>
+                <input
+                  style={inputStyle}
+                  placeholder="Enter note"
+                  value={outForm.note}
+                  onChange={(e) => setOutForm({ ...outForm, note: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
+                />
+              </div>
             </div>
             <div>
-              <button style={{ ...tiny.btn, background: "#333", color: "#fff" }} type="submit">
-                Add OUT
+              <button 
+                style={buttonPrimary} 
+                type="submit"
+                onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                ➖ Add OUT
               </button>
             </div>
           </form>
 
           {outError && (
-            <div style={{ padding: 10, background: '#ffecec', color: '#c00', border: '1px solid #f5c2c2', borderRadius: 6 }}>
-              {outError}
+            <div style={{ 
+              padding: "14px 18px", 
+              background: "rgba(239,68,68,0.1)", 
+              color: "#dc2626", 
+              border: "1px solid rgba(239,68,68,0.3)", 
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: 14
+            }}>
+              ❌ {outError}
             </div>
           )}
 
@@ -850,14 +1178,23 @@ const WarehousePage = () => {
 
       {/* MOVEMENTS (combined) */}
       {tab === "movements" && (
-        <div style={{ gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>Inventory Movements</h2>
+        <div style={{ gap: 24 }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 24,
+            ...cardStyle,
+            padding: "16px 20px"
+          }}>
+            <h2 style={sectionTitleStyle}>🔄 Inventory Movements</h2>
             <button 
-              style={{ ...tiny.btn, background: "#333", color: "#fff" }}
+              style={buttonPrimary}
               onClick={() => { fetchIn(); fetchOut(); }}
+              onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+              onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
             >
-              Refresh
+              🔃 Refresh
             </button>
           </div>
           <MovementFilters 
@@ -876,33 +1213,47 @@ const WarehousePage = () => {
 
 const MovementFilters = ({ filters, setFilters, onApply }) => {
   return (
-    <div style={{ ...tiny.card, display: "flex", gap: 10, alignItems: "center" }}>
+    <div style={{ ...cardStyle, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <input
-        style={tiny.input}
+        style={{ ...inputStyle, flex: "1 1 150px", minWidth: 120 }}
         placeholder="Item ID"
         value={filters.item_id}
         onChange={(e) => setFilters({ ...filters, item_id: e.target.value })}
+        onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+        onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
       />
       <input
-        style={tiny.input}
+        style={{ ...inputStyle, flex: "1 1 150px", minWidth: 120 }}
         type="date"
         value={filters.from}
         onChange={(e) => setFilters({ ...filters, from: e.target.value })}
+        onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+        onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
       />
       <input
-        style={tiny.input}
+        style={{ ...inputStyle, flex: "1 1 150px", minWidth: 120 }}
         type="date"
         value={filters.to}
         onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+        onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+        onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
       />
       <input
-        style={{ ...tiny.input, width: 100 }}
+        style={{ ...inputStyle, width: 100 }}
         type="number"
+        placeholder="Limit"
         value={filters.limit}
         onChange={(e) => setFilters({ ...filters, limit: Number(e.target.value || 100) })}
+        onFocus={e => e.currentTarget.style.borderColor = "#475569"}
+        onBlur={e => e.currentTarget.style.borderColor = "#e5e7eb"}
       />
-      <button style={{ ...tiny.btn, background: "#333", color: "#fff" }} onClick={onApply}>
-        Apply
+      <button 
+        style={buttonPrimary} 
+        onClick={onApply}
+        onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
+        onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}
+      >
+        🔍 Apply Filters
       </button>
     </div>
   );
@@ -979,16 +1330,16 @@ const MovementInTable = ({ rows }) => {
               <th>Note</th>
             </tr>
             <tr>
-              <th><input style={tiny.input} placeholder="Filter date" value={filters.date} onChange={(e)=>setFilters({...filters,date:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Filter item" value={filters.item} onChange={(e)=>setFilters({...filters,item:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Qty (e.g. >=5)" value={filters.qty} onChange={(e)=>setFilters({...filters,qty:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Unit (e.g. <10)" value={filters.unitPrice} onChange={(e)=>setFilters({...filters,unitPrice:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Total (e.g. =100)" value={filters.totalCost} onChange={(e)=>setFilters({...filters,totalCost:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Filter date" value={filters.date} onChange={(e)=>setFilters({...filters,date:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Filter item" value={filters.item} onChange={(e)=>setFilters({...filters,item:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Qty (e.g. >=5)" value={filters.qty} onChange={(e)=>setFilters({...filters,qty:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Unit (e.g. <10)" value={filters.unitPrice} onChange={(e)=>setFilters({...filters,unitPrice:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Total (e.g. =100)" value={filters.totalCost} onChange={(e)=>setFilters({...filters,totalCost:e.target.value})} /></th>
               <th></th>
-              <th><input style={tiny.input} placeholder="Supplier" value={filters.supplier} onChange={(e)=>setFilters({...filters,supplier:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Invoice Number" value={filters.po} onChange={(e)=>setFilters({...filters,po:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="By" value={filters.by} onChange={(e)=>setFilters({...filters,by:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Note" value={filters.note} onChange={(e)=>setFilters({...filters,note:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Supplier" value={filters.supplier} onChange={(e)=>setFilters({...filters,supplier:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Invoice Number" value={filters.po} onChange={(e)=>setFilters({...filters,po:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="By" value={filters.by} onChange={(e)=>setFilters({...filters,by:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Note" value={filters.note} onChange={(e)=>setFilters({...filters,note:e.target.value})} /></th>
           </tr>
           </thead>
           <tbody>
@@ -1124,17 +1475,17 @@ const MovementOutTable = ({ rows }) => {
               <th>Note</th>
             </tr>
             <tr>
-              <th><input style={tiny.input} placeholder="Filter date" value={filters.date} onChange={(e)=>setFilters({...filters,date:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Filter item" value={filters.item} onChange={(e)=>setFilters({...filters,item:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Qty (e.g. >=5)" value={filters.qty} onChange={(e)=>setFilters({...filters,qty:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Unit (e.g. <10)" value={filters.unitPrice} onChange={(e)=>setFilters({...filters,unitPrice:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Total (e.g. =100)" value={filters.totalValue} onChange={(e)=>setFilters({...filters,totalValue:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Filter date" value={filters.date} onChange={(e)=>setFilters({...filters,date:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Filter item" value={filters.item} onChange={(e)=>setFilters({...filters,item:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Qty (e.g. >=5)" value={filters.qty} onChange={(e)=>setFilters({...filters,qty:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Unit (e.g. <10)" value={filters.unitPrice} onChange={(e)=>setFilters({...filters,unitPrice:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Total (e.g. =100)" value={filters.totalValue} onChange={(e)=>setFilters({...filters,totalValue:e.target.value})} /></th>
               <th></th>
-              <th><input style={tiny.input} placeholder="Reason" value={filters.reason} onChange={(e)=>setFilters({...filters,reason:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="PO/Order" value={filters.po} onChange={(e)=>setFilters({...filters,po:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Supplier" value={filters.supplier} onChange={(e)=>setFilters({...filters,supplier:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="By" value={filters.by} onChange={(e)=>setFilters({...filters,by:e.target.value})} /></th>
-              <th><input style={tiny.input} placeholder="Note" value={filters.note} onChange={(e)=>setFilters({...filters,note:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Reason" value={filters.reason} onChange={(e)=>setFilters({...filters,reason:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="PO/Order" value={filters.po} onChange={(e)=>setFilters({...filters,po:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Supplier" value={filters.supplier} onChange={(e)=>setFilters({...filters,supplier:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="By" value={filters.by} onChange={(e)=>setFilters({...filters,by:e.target.value})} /></th>
+              <th><input style={inputStyle} placeholder="Note" value={filters.note} onChange={(e)=>setFilters({...filters,note:e.target.value})} /></th>
           </tr>
           </thead>
           <tbody>

@@ -32,6 +32,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const [error, setError] = useState("");
   const [modalProject, setModalProject] = useState(null);
   const [prodSummary, setProdSummary] = useState({}); // project_id -> summary
+  const [pendingReqSet, setPendingReqSet] = useState(new Set()); // Set<project_id> with pending status request
   const [showFilters, setShowFilters] = useState(false);
   const [compactProd, setCompactProd] = useState(true); // merge PO+Materials into one column
   const [compactDates, setCompactDates] = useState(true); // merge Install/Production/Event/Off into one column
@@ -43,6 +44,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
     status: "",
     productionStatus: "",
     location: "", // this now refers to country
+    company: "",
+    requestType: "",
+    prodLocation: "",
+    poNo: "",
+    warehouseEntry: "",
     installFrom: "",
     installTo: "",
     productionFrom: "",
@@ -63,6 +69,9 @@ const ProductionPage = ({ isSidebarOpen }) => {
   const [prodLocations, setProdLocations] = useState({}); // project_id -> {country,state,details}
   const headerBarStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, position: "sticky", top: 0, zIndex: 5, background: "#fff", padding: "10px 0", borderBottom: "1px solid #ececf1" };
   const cardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 12, padding: 12, boxShadow: "0 4px 14px rgba(16,24,40,0.06)" };
+  const tableCardStyle = { background: "#fff", border: "1px solid #e6e6f0", borderRadius: 14, padding: 16, boxShadow: "0 6px 18px rgba(16,24,40,0.08)", overflow: "hidden" };
+  const tableHeaderStyle = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 10, flexWrap: "wrap" };
+  const tableBadgeStyle = { background: "rgba(59,130,246,0.12)", color: "#1e40af", padding: "6px 10px", borderRadius: 999, fontWeight: 700, fontSize: 13 };
   const primaryBtnStyle = { background: "linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, cursor: "pointer" };
   const ghostBtnStyle = { background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
   const PHOTO_CATEGORY_BG = { Production: "rgba(59,130,246,0.10)", Installation: "rgba(16,185,129,0.12)", "JMC":"rgba(59,130,246,0.10)", "3D": "rgba(99,102,241,0.12)", Other: "#f3f4f6" };
@@ -74,7 +83,42 @@ const ProductionPage = ({ isSidebarOpen }) => {
       const res = await fetch(api("projects_list.php"));
       const data = await res.json();
       if (data?.success && Array.isArray(data.projects)) {
-        setProjects(data.projects);
+        // Update projects that have job_no but status is not "In Process "
+        const updatePromises = data.projects
+          .filter(p => {
+            const hasJobNo = p.job_no && p.job_no.trim() !== "";
+            const currentStatus = (p.status || "").toLowerCase().trim();
+            const isNotInProcess = currentStatus !== "in process" && currentStatus !== "in process ";
+            const isNotFinal = currentStatus !== "completed" && currentStatus !== "cancelled";
+            return hasJobNo && isNotInProcess && isNotFinal;
+          })
+          .map(async (p) => {
+            try {
+              await fetch(api("projects_update.php"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({
+                  id: p.id,
+                  status: "operation phase ",
+                }),
+              });
+            } catch (err) {
+              console.error(`Failed to update status for project ${p.id}:`, err);
+            }
+          });
+        if (updatePromises.length > 0) {
+          await Promise.all(updatePromises);
+          // Re-fetch to get updated data
+          const res2 = await fetch(api("projects_list.php"));
+          const data2 = await res2.json();
+          if (data2?.success && Array.isArray(data2.projects)) {
+            setProjects(data2.projects);
+          } else {
+            setProjects(data.projects);
+          }
+        } else {
+          setProjects(data.projects);
+        }
       } else {
         setProjects([]);
         setError(data?.message || "Failed to load projects");
@@ -127,8 +171,28 @@ const ProductionPage = ({ isSidebarOpen }) => {
     }
   };
 
+  // Pending status requests for badge display (operation side)
+  const fetchPendingRequests = async () => {
+    try {
+      const res = await fetch(api("status_request_list.php?status=pending"));
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.items)) {
+        const s = new Set();
+        data.items.forEach((it) => {
+          const pid = Number(it?.project_id);
+          if (pid) s.add(pid);
+        });
+        setPendingReqSet(s);
+      } else {
+        setPendingReqSet(new Set());
+      }
+    } catch {
+      setPendingReqSet(new Set());
+    }
+  };
+
   const fetchAll = async () => {
-    await Promise.all([fetchProjects(), fetchProductionSummary()]);
+    await Promise.all([fetchProjects(), fetchProductionSummary(), fetchPendingRequests()]);
     // also refresh local statuses
     try {
       if (typeof window !== "undefined") {
@@ -360,6 +424,17 @@ const ProductionPage = ({ isSidebarOpen }) => {
     return parts.length ? parts.join(" - ") : "-";
   };
 
+  const redDotStyle = {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    background: "#ef4444",
+    boxShadow: "0 0 0 2px #ffffff",
+  };
+
   const rangesOverlap = (startA, endA, startB, endB) => {
     if (!startB && !endB) return true; // no filter applied
     const aStart = startA ? new Date(startA) : null;
@@ -374,10 +449,15 @@ const ProductionPage = ({ isSidebarOpen }) => {
   };
 
   const filteredProjects = projects.filter((p) => {
+    // Only show projects with job_no assigned by account manager
+    if (!p.job_no || p.job_no.trim() === "") return false;
+    
     // text filters
     if (filters.name && !(p.name || "").toLowerCase().includes(filters.name.toLowerCase())) return false;
     if (filters.contact && !(p.Response_name || "").toLowerCase().includes(filters.contact.toLowerCase())) return false;
     if (filters.job && !(p.job_no || "").toLowerCase().includes(filters.job.toLowerCase())) return false;
+    if (filters.company && !(p.company_name || "").toLowerCase().includes(filters.company.toLowerCase())) return false;
+    if (filters.requestType && !(p.request_type || "").toLowerCase().includes(filters.requestType.toLowerCase())) return false;
     if (filters.status && !(p.status || "").toLowerCase().includes(filters.status.toLowerCase())) return false;
     if (filters.productionStatus) {
       const s = prodSummary[p.id] || {};
@@ -390,6 +470,22 @@ const ProductionPage = ({ isSidebarOpen }) => {
       // If location filter (country) is applied, match strictly on project location's country field or string value
       const country = getCountryValueFromProject(p).toLowerCase();
       if (country !== filters.location.toLowerCase()) return false;
+    }
+    if (filters.prodLocation) {
+      const pl = (getProdLocationText(p.id) || "").toLowerCase();
+      if (!pl.includes(filters.prodLocation.toLowerCase())) return false;
+    }
+    if (filters.poNo) {
+      const s = prodSummary[p.id] || {};
+      const po = s?.po || {};
+      const poNo = (po?.po_no || "").toLowerCase();
+      if (!poNo.includes(filters.poNo.toLowerCase())) return false;
+    }
+    if (filters.warehouseEntry) {
+      const s = prodSummary[p.id] || {};
+      const po = s?.po || {};
+      const we = (po?.warehouse_entry_date || "").toLowerCase();
+      if (!we.includes(filters.warehouseEntry.toLowerCase())) return false;
     }
 
     const d = p?.dates || {};
@@ -433,20 +529,28 @@ const ProductionPage = ({ isSidebarOpen }) => {
             <div style={{ display: "flex", flexDirection: "row" }}>
               <div style={{ flex: 2, marginRight: 24 }}>
                 <h4 style={{ marginBottom: 12 }}>Project Filters</h4>
-                <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
-                  <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
-                    <label className="form-label">Name</label>
+                <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: 12 }}>
+                  <div className="form-field">
+                    <label className="form-label">Project Name</label>
                     <input className="form-input" name="name" value={filters.name} onChange={handleFilterChange} placeholder="Search name" />
                   </div>
-                  <div className="form-field" style={{ flex: 1, minWidth: 130 }}>
+                  <div className="form-field">
+                    <label className="form-label">Company</label>
+                    <input className="form-input" name="company" value={filters.company} onChange={handleFilterChange} placeholder="Search company" />
+                  </div>
+                  <div className="form-field">
                     <label className="form-label">Contact</label>
                     <input className="form-input" name="contact" value={filters.contact} onChange={handleFilterChange} placeholder="Search contact" />
                   </div>
-                  <div className="form-field" style={{ flex: 1, minWidth: 110 }}>
+                  <div className="form-field">
                     <label className="form-label">Job No</label>
                     <input className="form-input" name="job" value={filters.job} onChange={handleFilterChange} placeholder="Search job no" />
                   </div>
-                  <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
+                  <div className="form-field">
+                    <label className="form-label">Request Type</label>
+                    <input className="form-input" name="requestType" value={filters.requestType} onChange={handleFilterChange} placeholder="e.g. New project" />
+                  </div>
+                  <div className="form-field">
                     <label className="form-label">Status</label>
                     <select
                       className="form-input"
@@ -461,7 +565,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
-                  <div className="form-field" style={{ flex: 1, minWidth: 140 }}>
+                  <div className="form-field">
                     <label className="form-label">Production Status</label>
                     <select
                       className="form-input"
@@ -475,8 +579,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       <option value="done">Done</option>
                     </select>
                   </div>
-                  <div className="form-field" style={{ flex: 1, minWidth: 120 }}>
-                    <label className="form-label">Location</label>
+                  <div className="form-field">
+                    <label className="form-label">Location (Country)</label>
                     <select
                       className="form-input"
                       name="location"
@@ -490,6 +594,30 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="form-field">
+                    <label className="form-label">Production Location (Country)</label>
+                    <select
+                      className="form-input"
+                      name="prodLocation"
+                      value={filters.prodLocation}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All Countries</option>
+                      {COUNTRY_OPTIONS.map((country) => (
+                        <option value={country} key={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <label className="form-label">PO Number</label>
+                    <input className="form-input" name="poNo" value={filters.poNo} onChange={handleFilterChange} placeholder="Search PO no" />
+                  </div>
+                  <div className="form-field">
+                    <label className="form-label">Warehouse Entry</label>
+                    <input className="form-input" type="date" name="warehouseEntry" value={filters.warehouseEntry} onChange={handleFilterChange} />
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 16, marginBottom: 8 }}>
@@ -542,6 +670,11 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         job: "",
                         status: "",
                         productionStatus: "",
+                        company: "",
+                        requestType: "",
+                        prodLocation: "",
+                        poNo: "",
+                        warehouseEntry: "",
                         location: "",
                         installFrom: "",
                         installTo: "",
@@ -584,17 +717,21 @@ const ProductionPage = ({ isSidebarOpen }) => {
       ) : filteredProjects.length === 0 ? (
         <p className="no-orders">No projects found.</p>
       ) : (
-        <div style={cardStyle}>
+        <div style={tableCardStyle}>
+          <div style={tableHeaderStyle}>
+            <div style={{ fontWeight: 700, color: "#111827", fontSize: 16 }}>Projects</div>
+            <div style={tableBadgeStyle}>{filteredProjects.length} results</div>
+          </div>
           <div style={{ overflowX: "auto" }}>
-          <table className="order-table" style={{ minWidth: 960, whiteSpace: "nowrap" }}>
+          <table className="order-table" style={{ minWidth: 1024, whiteSpace: "nowrap", borderCollapse: "collapse" }}>
             <thead>
-              <tr>
+              <tr style={{ background: "linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%)" }}>
                 <th>Created At</th>
                 <th>ID</th>
+                <th>Work Order</th>
                 <th>Company Name</th>
                 <th>Project Name</th>
                 <th>Contact</th>
-                <th>Job No</th>
                 <th>Request Type</th>
                 <th>Location</th>
                 <th>Production Location</th>
@@ -609,6 +746,8 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       PO & Materials <span style={{ marginLeft: 6 }}>▾</span>
                     </th>
                     <th>Warehouse Entry</th>
+                    <th>Current Date</th>
+                    <th>Progress</th>
                   </>
                 ) : (
                   <>
@@ -623,6 +762,10 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>PO Dates</th>
                     <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
                       color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Warehouse Entry</th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
+                      color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Current Date</th>
+                    <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
+                      color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Progress</th>
                     
                     <th style={{ cursor: "pointer", userSelect: "none", background: "rgba(25,118,210,0.10)", 
                       color: "#0d47a1", padding: "4px 6px", borderRadius: 8 }}>Available Mat</th>
@@ -670,10 +813,10 @@ const ProductionPage = ({ isSidebarOpen }) => {
                 <tr key={p.id} style={rowStyle}>
                   <td className="table-cell">{p.created_at || "-"}</td>
                   <td className="table-cell">{p.id}</td>
+                  <td className="table-cell">{p.job_no || "-"}</td>
                   <td className="table-cell">{p.company_name || "-"}</td>
                   <td className="table-cell">{p.name}</td>
                   <td className="table-cell">{p.Response_name || "-"}</td>
-                  <td className="table-cell">{p.job_no || "-"}</td>
                   <td className="table-cell" style={{ maxWidth: 180, overflow: "auto", whiteSpace: "nowrap" }}>
                     <div style={{ maxWidth: 180, overflowX: "auto", whiteSpace: "nowrap" }}>
                       {p.request_type || "-"}
@@ -700,12 +843,16 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     const mt = s?.materials_text_preview || null;
                     const availableText = mt ? (mt.available_preview || "-") : (firstTwo.length ? firstTwo.join(", ") : "-");
                     const unavailableText = mt ? (mt.unavailable_preview || "-") : "-";
+                    const currentDate = po?.currently_date || po?.actually_date || po?.actually_Date || "";
+                    const progressStat = po?.progress_stat || "";
                     if (compactProd) {
                       const summaryParts = [
                         po?.po_no ? `PO: ${po.po_no}` : "PO: -",
                         po?.po_s_date ? (po?.po_exp_date ? `${po.po_s_date}→${po.po_exp_date}` : po.po_s_date) : "-",
                         availableText && availableText !== "-" ? `Av: ${availableText}` : "Av: -",
                         unavailableText && unavailableText !== "-" ? `Un: ${unavailableText}` : "Un: -",
+                        currentDate ? `Cur: ${currentDate}` : "Cur: -",
+                        progressStat ? `Prog: ${progressStat}` : "Prog: -",
                       ];
                       const summaryText = summaryParts.join(" | ");
                       return (
@@ -735,6 +882,18 @@ const ProductionPage = ({ isSidebarOpen }) => {
                             style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
                           >
                             {po?.warehouse_entry_date || "-"}
+                          </td>
+                          <td
+                            className="table-cell"
+                            style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                          >
+                            {currentDate || "-"}
+                          </td>
+                          <td
+                            className="table-cell"
+                            style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                          >
+                            {progressStat || "-"}
                           </td>
                         </>
                       );
@@ -771,6 +930,18 @@ const ProductionPage = ({ isSidebarOpen }) => {
                           style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
                         >
                           {po?.warehouse_entry_date || "-"}
+                        </td>
+                        <td
+                          className="table-cell"
+                          style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                        >
+                          {currentDate || "-"}
+                        </td>
+                        <td
+                          className="table-cell"
+                          style={getStatusStyles(poStatus, { borderRadius: 8, padding: "6px 8px" })}
+                        >
+                          {progressStat || "-"}
                         </td>
                         <td
                           className="table-cell"
@@ -956,11 +1127,12 @@ const ProductionPage = ({ isSidebarOpen }) => {
                       <a
                         href={`/arkann/operationedit/${p.id}`}
                         className="icon-button"
-                        style={{ padding: 4, fontSize: 15 }}
+                        style={{ padding: 4, fontSize: 15, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                         title="Edit Operation"
                         aria-label="Edit Operation"
                       >
                         ✏️
+                        {pendingReqSet?.has?.(p.id) ? <span aria-hidden="true" style={redDotStyle} /> : null}
                       </a>
                     </div>
                   </td>

@@ -163,6 +163,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
 
       setSuccess("All changes saved.");
       setFiles({ "3d": null, prova: null, brief: null, quotation: null, photos: null, invoice: null });
+      setTimeout(() => setSuccess(""), 3000);
       await fetchProject();
     } catch (e) {
       setError(e.message || "Save failed");

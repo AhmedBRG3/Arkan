@@ -14,7 +14,7 @@ const ProductionPoEditPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [project, setProject] = useState(null);
-  const [po, setPo] = useState({ po_no: "", po_s_date: "", po_exp_date: "", warehouse_entry_date: "" });
+  const [po, setPo] = useState({ po_no: "", po_s_date: "", po_exp_date: "", warehouse_entry_date: "", actually_date: "", progress_stat: "" });
   const [materialsText, setMaterialsText] = useState({ available_material: "", unavailable_material: ""});
   const role = typeof window !== "undefined" ? (localStorage.getItem("role") || "") : "";
   const [poStatus, setPoStatus] = useState("none");
@@ -49,7 +49,7 @@ const ProductionPoEditPage = () => {
         const res = await fetch(api(`production_get_detail.php?project_id=${id}`), { credentials: "include" });
         const data = await res.json();
         if (data?.success) {
-          setPo(data.po || { po_no: "", po_s_date: "", po_exp_date: "", warehouse_entry_date: "" });
+          setPo(data.po || { po_no: "", po_s_date: "", po_exp_date: "", warehouse_entry_date: "", actually_date: "", progress_stat: "" });
           const p = data.po || {};
           setPoStatus(p.prod_status || p.po_status || p.status || "none");
           // Fetch current project location (same behavior as ProjectEditPage)
@@ -91,7 +91,7 @@ const ProductionPoEditPage = () => {
     try {
       setLoading(true);
       setError("");
-      const body = { project_id: Number(id), po_no: po.po_no, po_s_date: po.po_s_date, po_exp_date: po.po_exp_date, warehouse_entry_date: po.warehouse_entry_date, prod_status: poStatus || "none" };
+      const body = { project_id: Number(id), po_no: po.po_no, po_s_date: po.po_s_date, po_exp_date: po.po_exp_date, warehouse_entry_date: po.warehouse_entry_date, actually_date: po.actually_date, progress_stat: po.progress_stat, prod_status: poStatus || "none" };
       const res = await fetch(api("production_upsert_po.php"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -142,7 +142,7 @@ const ProductionPoEditPage = () => {
       }
       if (ok) {
         setSuccess("Production location saved");
-        setTimeout(() => setSuccess(""), 2500);
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (e) {
       setError(e.message || "Save failed");
@@ -214,6 +214,8 @@ const ProductionPoEditPage = () => {
           po_s_date: po.po_s_date,
           po_exp_date: po.po_exp_date,
           warehouse_entry_date: po.warehouse_entry_date,
+          actually_date: po.actually_date,
+          progress_stat: po.progress_stat,
           prod_status: poStatus || "none",
         };
         const res = await fetch(api("production_upsert_po.php"), {
@@ -332,6 +334,39 @@ const ProductionPoEditPage = () => {
               style={inputStyle}
             />
           </div>
+          <div className="form-field">
+            <label className="form-label">Actually Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={po.actually_date || ""}
+              onChange={(e) => setPo((x) => ({ ...x, actually_date: e.target.value }))}
+              style={inputStyle}
+            />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Progress (auto)</label>
+            <div
+              className="form-input"
+              style={{
+                background: "#f9fafb",
+                color: "#374151",
+                minHeight: 44,
+                display: "flex",
+                alignItems: "center",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                fontWeight: 600
+              }}
+            >
+              {po.progress_stat || "pending"}
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+              Progress is calculated automatically from PO dates and actual date.
+            </div>
+          </div>
+         
           {(role === "admin" || role === "production") && (
             <button className="form-button submit-button" onClick={savePO} style={{ marginTop: 8 }}>
               Save PO

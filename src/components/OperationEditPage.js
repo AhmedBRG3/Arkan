@@ -80,6 +80,7 @@ const ProjectEditPage = ({ isSidebarOpen }) => {
       }
       setSuccess("All changes saved.");
       setFiles({ "3d": null, prova: null, brief: null, quotation: null, photos: null, invoice: null });
+      setTimeout(() => setSuccess(""), 3000);
       await fetchProject();
     } catch (e) {
       setError(e.message || "Save failed");
@@ -107,6 +108,17 @@ console.log(requesterName);
     }
   };
 
+  const redDotStyle = {
+    display: "inline-block",
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "#ef4444",
+    marginLeft: 8,
+    boxShadow: "0 0 0 2px #ffffff",
+    verticalAlign: "middle",
+  };
+
   const requestStatusChange = async (toStatus) => {
     if (!requesterName) {
       setError("Requester id not found. Please re-login.");
@@ -129,6 +141,7 @@ console.log(requesterName);
       const data = await res.json();
       if (!data?.success) throw new Error(data?.message || "Request failed");
       setSuccess("Request sent for approval.");
+      setTimeout(() => setSuccess(""), 3000);
       setPendingRequest({
         id: data.id,
         project_id: Number(id),
@@ -140,6 +153,37 @@ console.log(requesterName);
       });
     } catch (e) {
       setError(e.message || "Failed to send request");
+    }
+  };
+
+  const cancelStatusRequest = async () => {
+    if (!pendingRequest) return;
+    try {
+      setSaving(true);
+      setError("");
+      if (!requesterName) {
+        setError("Requester name not found. Please re-login.");
+        return;
+      }
+      const res = await fetch(api("status_request_update.php"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request_id: pendingRequest.id,
+          approver_name: requesterName,
+          action: "cancel"
+        }),
+      });
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.message || "Cancel failed");
+      setSuccess("Status request cancelled successfully");
+      setTimeout(() => setSuccess(""), 3000);
+      setPendingRequest(null);
+      setRequestReason("");
+    } catch (e) {
+      setError(e.message || "Failed to cancel request");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -283,7 +327,10 @@ console.log(requesterName);
 
   return (
     <div className={`order-page ${isSidebarOpen ? "shifted" : ""}`}>
-      <h2 className="order-title">Edit Project #{id}</h2>
+      <h2 className="order-title">
+        Edit Project #{id}
+        {pendingRequest ? <span aria-label="Pending request" title="Pending request" style={redDotStyle} /> : null}
+      </h2>
       {error && <div className="error-message">❌ {error}</div>}
       {success && <div className="success-message">{success}</div>}
 
@@ -317,11 +364,53 @@ console.log(requesterName);
                 />
               </div>
               {pendingRequest ? (
-                <div style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10, background: "rgba(251,191,36,0.12)", marginBottom: 10 }}>
-                  <div style={{ fontWeight: 700, color: "#92400e" }}>Pending approval</div>
-                  <div>From: {pendingRequest.from_status || form.status}</div>
-                  <div>To: {pendingRequest.to_status}</div>
-                  {pendingRequest.reason ? <div style={{ marginTop: 6, color: "#374151" }}>Reason: {pendingRequest.reason}</div> : null}
+                <div style={{ 
+                  padding: 12, 
+                  border: "1px solid #e5e7eb", 
+                  borderRadius: 10, 
+                  background: "rgba(251,191,36,0.12)", 
+                  marginBottom: 10 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: "#92400e", marginBottom: 8 }}>⚠️ Pending approval</div>
+                      <div style={{ fontSize: 14, color: "#78350f", marginBottom: 4 }}>
+                        <strong>From:</strong> {pendingRequest.from_status || form.status} → <strong>To:</strong> {pendingRequest.to_status}
+                      </div>
+                      {pendingRequest.reason ? (
+                        <div style={{ fontSize: 14, color: "#78350f", marginTop: 4 }}>
+                          <strong>Reason:</strong> {pendingRequest.reason}
+                        </div>
+                      ) : null}
+                      <div style={{ fontSize: 12, color: "#92400e", marginTop: 8 }}>
+                        Requested on: {pendingRequest.created_at ? new Date(pendingRequest.created_at).toLocaleString() : "N/A"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={cancelStatusRequest}
+                      disabled={saving}
+                      style={{
+                        background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        color: "#dc2626",
+                        padding: "8px 16px",
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: saving ? "not-allowed" : "pointer",
+                        transition: "all 0.2s",
+                        whiteSpace: "nowrap"
+                      }}
+                      onMouseOver={e => {
+                        if (!saving) e.currentTarget.style.background = "rgba(239,68,68,0.2)";
+                      }}
+                      onMouseOut={e => {
+                        if (!saving) e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+                      }}
+                    >
+                      {saving ? "⏳ Cancelling..." : "❌ Cancel Request"}
+                    </button>
+                  </div>
                 </div>
               ) : null}
               <div className="status-buttons" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>

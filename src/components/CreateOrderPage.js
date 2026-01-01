@@ -275,8 +275,11 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
         await Promise.all(uploads);
       }
 
-      setSuccess("✅ Project created successfully.");
-      resetForm();
+      setSuccess("Project created successfully.");
+      setTimeout(() => {
+        setSuccess("");
+        resetForm();
+      }, 3000);
     } catch (err) {
       console.error(err);
       setError(err.message || "Something went wrong");
@@ -436,7 +439,7 @@ const CreateOrderPage = ({ isSidebarOpen }) => {
               </select>
             </div>
             <div className="form-field">
-              <label className="form-label">Notes</label>
+              <label className="form-label">Brief</label>
               <textarea
                 name="notes"
                 value={form.notes || ""}

@@ -76,7 +76,42 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
       const res = await fetch(api("projects_list.php"));
       const data = await res.json();
       if (data?.success && Array.isArray(data.projects)) {
-        setProjects(data.projects);
+        // Update projects that have no job_no but status is not "new"
+        const updatePromises = data.projects
+          .filter(p => {
+            const noJobNo = !p.job_no || p.job_no.trim() === "";
+            const currentStatus = (p.status || "").toLowerCase().trim();
+            const isNotNew = currentStatus !== "new";
+            const isNotCancelled = currentStatus !== "cancelled";
+            return noJobNo && isNotNew && isNotCancelled;
+          })
+          .map(async (p) => {
+            try {
+              await fetch(api("projects_update.php"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({
+                  id: p.id,
+                  status: "new",
+                }),
+              });
+            } catch (err) {
+              console.error(`Failed to update status for project ${p.id}:`, err);
+            }
+          });
+        if (updatePromises.length > 0) {
+          await Promise.all(updatePromises);
+          // Re-fetch to get updated data
+          const res2 = await fetch(api("projects_list.php"));
+          const data2 = await res2.json();
+          if (data2?.success && Array.isArray(data2.projects)) {
+            setProjects(data2.projects);
+          } else {
+            setProjects(data.projects);
+          }
+        } else {
+          setProjects(data.projects);
+        }
       } else {
         setProjects([]);
         setError(data?.message || "Failed to load projects");
@@ -520,10 +555,10 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                 <tr>
                   <th>Created At</th>
                   <th>ID</th>
-                  <th>Company Name</th>
+                  <th>Work Order No</th>
                   <th>Name</th>
                   <th>Contact</th>
-                  <th>Job No</th>
+                  <th>Company Name</th>
                   <th>Location</th>
                   <th>Status</th>
                   <th>Install</th>
@@ -545,10 +580,10 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                   <tr key={p.id}>
                     <td className="table-cell">{p.created_at || "-"}</td>
                     <td className="table-cell">{p.id}</td>
+                    <td className="table-cell">{p.job_no || "-"}</td>
                     <td className="table-cell">{p.company_name || "-"}</td>
                     <td className="table-cell">{p.name}</td>
                     <td className="table-cell">{p.Response_name || "-"}</td>
-                    <td className="table-cell">{p.job_no || "-"}</td>
                     <td className="table-cell" style={{ maxWidth: 220, overflow: "auto", whiteSpace: "nowrap" }}>
                       <div style={{ maxWidth: 220, overflowX: "auto", whiteSpace: "nowrap" }}>
                         {getLocationText(p) || "-"}
@@ -570,21 +605,7 @@ const AccountmanagerPage = ({ isSidebarOpen }) => {
                         "-"
                       )}
                     </td>
-                    {/* <td className="table-cell">
-                      {p?.dates?.production_date ? (
-                        <div>
-                          <div>{p?.dates?.production_date}</div>
-                          {p?.dates?.production_end_date && (
-                            <>
-                              <div style={{ fontWeight: "bold", textAlign: "center" }}>to</div>
-                              <div>{p?.dates?.production_end_date}</div>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        "-"
-                      )}
-                    </td> */}
+                   
                     <td className="table-cell">
                       {p?.dates?.event_date ? (
                         <div>

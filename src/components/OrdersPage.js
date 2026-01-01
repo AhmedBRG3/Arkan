@@ -83,8 +83,8 @@ const OrdersPage = () => {
           <thead>
             <tr>
               <th style={{ width: 90 }}>Project ID</th>
-              <th>Company Name</th>
               <th>Job Number</th>
+              <th>Company Name</th>
               <th>Project Name</th>
               <th>Actions</th>
             </tr>
@@ -93,8 +93,8 @@ const OrdersPage = () => {
             {projects.map((p) => (
               <tr key={p.id}>
                 <td className="table-cell">{p.id}</td>
-                <td className="table-cell">{p.company_name || "-"}</td>
                 <td className="table-cell">{p.job_number || p.job_no || "-"}</td>
+                <td className="table-cell">{p.company_name || "-"}</td>
                 <td className="table-cell">{p.project_name || p.name || "-"}</td>
                 <td className="table-cell">
                   <span
