@@ -43,6 +43,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
     job: "",
     status: "",
     productionStatus: "",
+    progress: "",
     location: "", // this now refers to country
     company: "",
     requestType: "",
@@ -466,6 +467,12 @@ const ProductionPage = ({ isSidebarOpen }) => {
       const normalized = normalizeStatus(combined);
       if (normalized !== filters.productionStatus) return false;
     }
+    if (filters.progress) {
+      const s = prodSummary[p.id] || {};
+      const po = s?.po || {};
+      const prog = (po?.progress_stat || "").toLowerCase();
+      if (!prog.includes(filters.progress.toLowerCase())) return false;
+    }
     if (filters.location) {
       // If location filter (country) is applied, match strictly on project location's country field or string value
       const country = getCountryValueFromProject(p).toLowerCase();
@@ -580,6 +587,20 @@ const ProductionPage = ({ isSidebarOpen }) => {
                     </select>
                   </div>
                   <div className="form-field">
+                    <label className="form-label">Progress</label>
+                    <select
+                      className="form-input"
+                      name="progress"
+                      value={filters.progress}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All</option>
+                      <option value="pending">Pending</option>
+                      <option value="on time">On time</option>
+                      <option value="delayed">Delayed</option>
+                    </select>
+                  </div>
+                  <div className="form-field">
                     <label className="form-label">Location (Country)</label>
                     <select
                       className="form-input"
@@ -670,6 +691,7 @@ const ProductionPage = ({ isSidebarOpen }) => {
                         job: "",
                         status: "",
                         productionStatus: "",
+                        progress: "",
                         company: "",
                         requestType: "",
                         prodLocation: "",
